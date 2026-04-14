@@ -1,0 +1,9 @@
+export const SCREEN_WIDTH = 1280;
+export const SCREEN_HEIGHT = 720;
+export const TILE_SIZE = 32;
+export const PLAYER_SPEED = 200;
+export const MISS_CHANCE = 0.2;
+export const LEVEL_CAP = 50;
+export const TYPE_ADVANTAGE_MULTIPLIER = 1.5;
+export const TYPE_DISADVANTAGE_MULTIPLIER = 0.5;
+export const MAX_TEAM_SIZE = 4;
