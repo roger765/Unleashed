@@ -2,6 +2,10 @@ import Phaser from 'phaser';
 import { gameConfig } from './config';
 import { GameState } from './state/GameState';
 
+if (navigator.maxTouchPoints > 0) {
+  document.body.classList.add('touch-device');
+}
+
 const game = new Phaser.Game(gameConfig);
 
 function saveWhenLeaving(): void {

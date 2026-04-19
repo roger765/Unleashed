@@ -3,6 +3,8 @@ import { TILE_SIZE } from '../constants';
 import { Player } from '../entities/Player';
 import { WildPet } from '../entities/WildPet';
 import { GameState } from '../state/GameState';
+import { EventBus } from '../state/EventBus';
+import { isTouchDevice } from '../utils/mobile';
 import { PET_TEMPLATES } from '../data/pets';
 import { IPetInstance } from '../types/pet';
 import { createPlayerCombatant, createPetCombatant } from '../battle/Combatant';
@@ -28,6 +30,7 @@ export class StonyMountainsScene extends Phaser.Scene {
   private zoneBossDialogBlocking = false;
   private interactKey: Phaser.Input.Keyboard.Key | null = null;
   private fightKey: Phaser.Input.Keyboard.Key | null = null;
+  private nearNpc = false;
 
   constructor() {
     super({ key: 'StonyMountainsScene' });
@@ -99,6 +102,17 @@ export class StonyMountainsScene extends Phaser.Scene {
 
     this.interactKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.E) ?? null;
     this.fightKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.R) ?? null;
+
+    if (isTouchDevice()) {
+      EventBus.on('mobile-interact', this.onMobileInteract, this);
+      EventBus.on('mobile-fight', this.onMobileFight, this);
+    }
+    this.events.on('shutdown', () => {
+      EventBus.off('mobile-interact', this.onMobileInteract, this);
+      EventBus.off('mobile-fight', this.onMobileFight, this);
+      EventBus.emit('mobile-action-hide');
+    });
+
     const gsBoss = GameState.getInstance();
     if (!gsBoss.getFlag('boss-defeated-cragnar')) {
       this.zoneBossNpc = new NPC(
@@ -153,7 +167,13 @@ export class StonyMountainsScene extends Phaser.Scene {
         ) {
           this.startCragnarBossBattle();
         }
+        if (!this.nearNpc && isTouchDevice()) {
+          EventBus.emit('mobile-action-show', { showE: true, showR: true });
+        }
+        this.nearNpc = true;
       } else {
+        if (this.nearNpc && isTouchDevice()) EventBus.emit('mobile-action-hide');
+        this.nearNpc = false;
         this.zoneBossNpc.hidePrompt();
       }
     }
@@ -164,6 +184,18 @@ export class StonyMountainsScene extends Phaser.Scene {
         this.startBattle(wp);
         break;
       }
+    }
+  }
+
+  private onMobileInteract(): void {
+    if (this.zoneBossNpc && !this.zoneBossDialogBlocking) {
+      this.zoneBossNpc.interact();
+    }
+  }
+
+  private onMobileFight(): void {
+    if (!this.zoneBossDialogBlocking) {
+      this.startCragnarBossBattle();
     }
   }
 

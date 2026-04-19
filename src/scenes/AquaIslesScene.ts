@@ -3,6 +3,8 @@ import { TILE_SIZE } from '../constants';
 import { Player } from '../entities/Player';
 import { WildPet } from '../entities/WildPet';
 import { GameState } from '../state/GameState';
+import { EventBus } from '../state/EventBus';
+import { isTouchDevice } from '../utils/mobile';
 import { PET_TEMPLATES } from '../data/pets';
 import { IPetInstance } from '../types/pet';
 import { createPlayerCombatant, createPetCombatant } from '../battle/Combatant';
@@ -137,6 +139,7 @@ export class AquaIslesScene extends Phaser.Scene {
   private interactKey: Phaser.Input.Keyboard.Key | null = null;
   private fightKey: Phaser.Input.Keyboard.Key | null = null;
   private inBoat = false;
+  private nearNpc = false;
   private boatAtDock!: Phaser.GameObjects.Image;
   private boatUnderPlayer!: Phaser.GameObjects.Image;
   private boatDockZone!: Phaser.GameObjects.Zone;
@@ -277,6 +280,16 @@ export class AquaIslesScene extends Phaser.Scene {
 
     this.interactKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.E) ?? null;
     this.fightKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.R) ?? null;
+
+    if (isTouchDevice()) {
+      EventBus.on('mobile-interact', this.onMobileInteract, this);
+      EventBus.on('mobile-fight', this.onMobileFight, this);
+    }
+    this.events.on('shutdown', () => {
+      EventBus.off('mobile-interact', this.onMobileInteract, this);
+      EventBus.off('mobile-fight', this.onMobileFight, this);
+      EventBus.emit('mobile-action-hide');
+    });
     const gsBoss = GameState.getInstance();
     if (!gsBoss.getFlag('boss-defeated-tidemother')) {
       this.zoneBossNpc = new NPC(
@@ -382,7 +395,13 @@ export class AquaIslesScene extends Phaser.Scene {
         ) {
           this.startTidemotherBossBattle();
         }
+        if (!this.nearNpc && isTouchDevice()) {
+          EventBus.emit('mobile-action-show', { showE: true, showR: true });
+        }
+        this.nearNpc = true;
       } else {
+        if (this.nearNpc && isTouchDevice()) EventBus.emit('mobile-action-hide');
+        this.nearNpc = false;
         this.zoneBossNpc.hidePrompt();
       }
     }
@@ -393,6 +412,18 @@ export class AquaIslesScene extends Phaser.Scene {
         this.startBattle(wp);
         break;
       }
+    }
+  }
+
+  private onMobileInteract(): void {
+    if (this.zoneBossNpc && !this.zoneBossDialogBlocking && !this.inBoat) {
+      this.zoneBossNpc.interact();
+    }
+  }
+
+  private onMobileFight(): void {
+    if (!this.zoneBossDialogBlocking && !this.inBoat) {
+      this.startTidemotherBossBattle();
     }
   }
 

@@ -5,6 +5,7 @@ import { Button } from '../ui/Button';
 import { GameState } from '../state/GameState';
 import { AssetFactory } from '../assets/AssetFactory';
 import { AudioManager } from '../audio/AudioManager';
+import { isTouchDevice } from '../utils/mobile';
 
 interface ColorOption {
   hex: number;    // For Phaser drawing / AssetFactory
@@ -43,6 +44,7 @@ export class CharacterCreateScene extends Phaser.Scene {
 
   private previewSprite!: Phaser.GameObjects.Image;
   private confirmButton!: Button;
+  private domInput: HTMLInputElement | null = null;
 
   constructor() {
     super({ key: 'CharacterCreateScene' });
@@ -101,19 +103,11 @@ export class CharacterCreateScene extends Phaser.Scene {
       },
     });
 
-    // Keyboard input
-    this.input.keyboard!.on('keydown', (event: KeyboardEvent) => {
-      if (event.key === 'Backspace') {
-        this.playerName = this.playerName.slice(0, -1);
-      } else if (event.key.length === 1 && this.playerName.length < MAX_NAME_LENGTH) {
-        // Accept letters, numbers, spaces
-        if (/^[a-zA-Z0-9 ]$/.test(event.key)) {
-          this.playerName += event.key;
-        }
-      }
-      this.refreshNameDisplay();
-      this.updateConfirmButton();
-    });
+    if (isTouchDevice()) {
+      this.setupDomInput(cx, inputY);
+    } else {
+      this.setupKeyboardInput();
+    }
 
     // ── Hair Color ──
     const hairY = inputY + 55;
@@ -151,6 +145,76 @@ export class CharacterCreateScene extends Phaser.Scene {
       this.onConfirm();
     }, { width: 220, height: 44, fontSize: '18px' });
     this.confirmButton.setEnabled(false);
+  }
+
+  // ── Input setup ──
+
+  private setupKeyboardInput(): void {
+    this.input.keyboard!.on('keydown', (event: KeyboardEvent) => {
+      if (event.key === 'Backspace') {
+        this.playerName = this.playerName.slice(0, -1);
+      } else if (event.key.length === 1 && this.playerName.length < MAX_NAME_LENGTH) {
+        if (/^[a-zA-Z0-9 ]$/.test(event.key)) {
+          this.playerName += event.key;
+        }
+      }
+      this.refreshNameDisplay();
+      this.updateConfirmButton();
+    });
+  }
+
+  private setupDomInput(cx: number, inputY: number): void {
+    const canvas = this.game.canvas;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = rect.width / SCREEN_WIDTH;
+    const scaleY = rect.height / SCREEN_HEIGHT;
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.maxLength = MAX_NAME_LENGTH;
+    input.setAttribute('autocomplete', 'off');
+    input.setAttribute('autocapitalize', 'words');
+    input.setAttribute('autocorrect', 'off');
+    input.setAttribute('spellcheck', 'false');
+
+    // opacity:0 keeps it invisible; font-size:16px prevents iOS Safari viewport zoom on focus
+    input.style.cssText = [
+      'position: fixed',
+      `left: ${rect.left + (cx - 130) * scaleX}px`,
+      `top: ${rect.top + (inputY - 18) * scaleY}px`,
+      `width: ${260 * scaleX}px`,
+      `height: ${36 * scaleY}px`,
+      'opacity: 0',
+      'font-size: 16px',
+      'border: none',
+      'background: transparent',
+      'color: transparent',
+      'caret-color: transparent',
+      'z-index: 100',
+      'outline: none',
+    ].join('; ');
+
+    input.addEventListener('input', () => {
+      this.playerName = input.value
+        .replace(/[^a-zA-Z0-9 ]/g, '')
+        .slice(0, MAX_NAME_LENGTH);
+      input.value = this.playerName;
+      this.refreshNameDisplay();
+      this.updateConfirmButton();
+    });
+
+    document.body.appendChild(input);
+    this.domInput = input;
+
+    const zone = this.add.zone(cx, inputY, 260, 36).setInteractive();
+    zone.on('pointerdown', () => input.focus());
+
+    this.time.delayedCall(400, () => input.focus());
+
+    this.events.on('shutdown', () => {
+      this.domInput?.remove();
+      this.domInput = null;
+    });
   }
 
   // ── Helpers ──

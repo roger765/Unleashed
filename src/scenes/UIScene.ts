@@ -7,6 +7,7 @@ import { BagUI } from '../ui/BagUI';
 import { MapUI } from '../ui/MapUI';
 import { Button } from '../ui/Button';
 import { AudioManager } from '../audio/AudioManager';
+import { isTouchDevice } from '../utils/mobile';
 
 const ICON_SIZE = 32;
 const HUD_PADDING = 12;
@@ -22,6 +23,8 @@ export class UIScene extends Phaser.Scene {
   private paused = false;
   /** Mini-menu Calm Mode button (wild pets ignore player). */
   private calmModeMenuButton: Phaser.GameObjects.Image | null = null;
+  private mobileEBtn: Phaser.GameObjects.Container | null = null;
+  private mobileRBtn: Phaser.GameObjects.Container | null = null;
 
   constructor() {
     super({ key: 'UIScene' });
@@ -99,7 +102,10 @@ export class UIScene extends Phaser.Scene {
       const bx = startX + i * (ICON_SIZE + BUTTON_GAP);
       const btn = this.add.image(bx, barY, item.key)
         .setScrollFactor(0)
-        .setInteractive({ useHandCursor: true });
+        .setInteractive(
+          new Phaser.Geom.Rectangle(-28, -28, 56, 56),
+          Phaser.Geom.Rectangle.Contains,
+        );
 
       if (item.label === 'Calm Mode') {
         this.calmModeMenuButton = btn;
@@ -134,10 +140,16 @@ export class UIScene extends Phaser.Scene {
       }
     });
 
+    if (isTouchDevice()) {
+      this.createMobileActionButtons();
+    }
+
     // Clean up listeners when scene shuts down
     this.events.on('shutdown', () => {
       EventBus.off('coins-changed', this.onCoinsChanged, this);
       EventBus.off('spirits-changed', this.onSpiritsChanged, this);
+      EventBus.off('mobile-action-show', undefined, this);
+      EventBus.off('mobile-action-hide', undefined, this);
     });
   }
 
@@ -282,6 +294,48 @@ export class UIScene extends Phaser.Scene {
     }, { width: 220, height: 48, fontSize: '20px', fillColor: 0xc0392b });
     quitBtn.setDepth(2001);
     this.pauseOverlay.add(quitBtn);
+  }
+
+  private createMobileActionButtons(): void {
+    this.mobileEBtn = this.makeFab(
+      SCREEN_WIDTH - 80, SCREEN_HEIGHT - 120, 'E', 0x27ae60,
+      () => EventBus.emit('mobile-interact'),
+    );
+    this.mobileEBtn.setVisible(false);
+
+    this.mobileRBtn = this.makeFab(
+      SCREEN_WIDTH - 80, SCREEN_HEIGHT - 60, 'R', 0xc0392b,
+      () => EventBus.emit('mobile-fight'),
+    );
+    this.mobileRBtn.setVisible(false);
+
+    EventBus.on('mobile-action-show', (data: { showE: boolean; showR: boolean }) => {
+      this.mobileEBtn?.setVisible(data.showE);
+      this.mobileRBtn?.setVisible(data.showR);
+    }, this);
+
+    EventBus.on('mobile-action-hide', () => {
+      this.mobileEBtn?.setVisible(false);
+      this.mobileRBtn?.setVisible(false);
+    }, this);
+  }
+
+  private makeFab(x: number, y: number, label: string, color: number, cb: () => void): Phaser.GameObjects.Container {
+    const SIZE = 56;
+    const c = this.add.container(x, y).setScrollFactor(0).setDepth(500);
+    const bg = this.add.graphics();
+    bg.fillStyle(color, 0.85);
+    bg.fillCircle(0, 0, SIZE / 2);
+    bg.lineStyle(2, 0xffffff, 0.4);
+    bg.strokeCircle(0, 0, SIZE / 2);
+    c.add(bg);
+    c.add(this.add.text(0, 0, label, {
+      fontSize: '22px', fontFamily: 'Arial Black, Arial', color: '#ffffff',
+    }).setOrigin(0.5));
+    c.setSize(SIZE, SIZE);
+    c.setInteractive(new Phaser.Geom.Circle(0, 0, SIZE / 2), Phaser.Geom.Circle.Contains);
+    c.on('pointerdown', () => { AudioManager.playSFX('click'); cb(); });
+    return c;
   }
 
   private closePauseMenu(): void {

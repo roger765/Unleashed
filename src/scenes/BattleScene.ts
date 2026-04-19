@@ -19,6 +19,7 @@ import { AudioManager } from '../audio/AudioManager';
 import { ITEMS } from '../data/items';
 import { ALL_REGISTERED_BOSS_IDS } from '../data/bosses';
 import { ItemType } from '../types/item';
+import { isTouchDevice } from '../utils/mobile';
 
 const TYPE_COLORS: Record<number, number> = {
   0: 0x78909c, // Rock
@@ -53,6 +54,8 @@ export class BattleScene extends Phaser.Scene {
   private logTexts: Phaser.GameObjects.Text[] = [];
   private keyboardEnabled = false;
   private numberKeys: Phaser.Input.Keyboard.Key[] = [];
+  private btnH = 40;
+  private btnStep = 52;
 
   constructor() {
     super({ key: 'BattleScene' });
@@ -97,6 +100,9 @@ export class BattleScene extends Phaser.Scene {
         this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.FOUR),
       ];
     }
+
+    this.btnH = isTouchDevice() ? 52 : 40;
+    this.btnStep = this.btnH + 12;
 
     // Start
     this.showSelectAttacker();
@@ -202,9 +208,9 @@ export class BattleScene extends Phaser.Scene {
         );
       }
 
-      const btn = new Button(this, px, py + 35 + i * 50, `${i + 1}. ${c.name} (${c.currentHp}/${c.maxHp})`, () => {
+      const btn = new Button(this, px, py + 35 + i * this.btnStep, `${i + 1}. ${c.name} (${c.currentHp}/${c.maxHp})`, () => {
         this.onSelectAttacker(i);
-      }, { width: 350, height: 40, fontSize: '14px', fillColor: 0x2c3e50 });
+      }, { width: 350, height: this.btnH, fontSize: '14px', fillColor: 0x2c3e50 });
       btn.setDepth(10);
       this.actionContent.push(btn);
     }
@@ -244,10 +250,10 @@ export class BattleScene extends Phaser.Scene {
       const move = attacker.moves[i];
       const color = TYPE_COLORS[move.type] ?? 0x9e9e9e;
       const btn = new Button(
-        this, px, py + 35 + i * 50,
+        this, px, py + 35 + i * this.btnStep,
         `${i + 1}. ${move.name} ${categoryLabel(move.category)} Pow:${move.power}`,
         () => this.onSelectMove(i),
-        { width: 350, height: 40, fontSize: '14px', fillColor: color },
+        { width: 350, height: this.btnH, fontSize: '14px', fillColor: color },
       );
       btn.setDepth(10);
       this.actionContent.push(btn);
@@ -261,10 +267,10 @@ export class BattleScene extends Phaser.Scene {
     });
     if (usable.length > 0) {
       const itemBtn = new Button(
-        this, px, py + 35 + attacker.moves.length * 50,
+        this, px, py + 35 + attacker.moves.length * this.btnStep,
         'Items',
         () => this.showItemSelect(),
-        { width: 350, height: 40, fontSize: '14px', fillColor: 0x8e44ad },
+        { width: 350, height: this.btnH, fontSize: '14px', fillColor: 0x8e44ad },
       );
       itemBtn.setDepth(10);
       this.actionContent.push(itemBtn);
@@ -306,10 +312,10 @@ export class BattleScene extends Phaser.Scene {
 
       const idx = btnIdx;
       const btn = new Button(
-        this, px, py + 35 + btnIdx * 50,
+        this, px, py + 35 + btnIdx * this.btnStep,
         `${btnIdx + 1}. ${c.name} (${c.currentHp}/${c.maxHp})`,
         () => this.onSelectTarget(i),
-        { width: 350, height: 40, fontSize: '14px', fillColor: 0xc0392b },
+        { width: 350, height: this.btnH, fontSize: '14px', fillColor: 0xc0392b },
       );
       btn.setDepth(10);
       this.actionContent.push(btn);
@@ -636,20 +642,20 @@ export class BattleScene extends Phaser.Scene {
       const slot = usable[i];
       const item = ITEMS[slot.itemId];
       const btn = new Button(
-        this, px, py + 35 + i * 50,
+        this, px, py + 35 + i * this.btnStep,
         `${item.name} x${slot.quantity}`,
         () => this.showItemTargetSelect(slot.itemId),
-        { width: 350, height: 40, fontSize: '14px', fillColor: 0x8e44ad },
+        { width: 350, height: this.btnH, fontSize: '14px', fillColor: 0x8e44ad },
       );
       btn.setDepth(10);
       this.actionContent.push(btn);
     }
 
     const backBtn = new Button(
-      this, px, py + 35 + usable.length * 50,
+      this, px, py + 35 + usable.length * this.btnStep,
       'Back',
       () => this.showSelectMove(),
-      { width: 350, height: 40, fontSize: '14px', fillColor: 0x2c3e50 },
+      { width: 350, height: this.btnH, fontSize: '14px', fillColor: 0x2c3e50 },
     );
     backBtn.setDepth(10);
     this.actionContent.push(backBtn);
@@ -674,10 +680,10 @@ export class BattleScene extends Phaser.Scene {
       if (c.currentHp <= 0) continue;
 
       const btn = new Button(
-        this, px, py + 35 + btnIdx * 50,
+        this, px, py + 35 + btnIdx * this.btnStep,
         `${c.name} (${c.currentHp}/${c.maxHp})`,
         () => this.useItem(itemId, i),
-        { width: 350, height: 40, fontSize: '14px', fillColor: 0x27ae60 },
+        { width: 350, height: this.btnH, fontSize: '14px', fillColor: 0x27ae60 },
       );
       btn.setDepth(10);
       this.actionContent.push(btn);
@@ -685,10 +691,10 @@ export class BattleScene extends Phaser.Scene {
     }
 
     const backBtn = new Button(
-      this, px, py + 35 + btnIdx * 50,
+      this, px, py + 35 + btnIdx * this.btnStep,
       'Back',
       () => this.showItemSelect(),
-      { width: 350, height: 40, fontSize: '14px', fillColor: 0x2c3e50 },
+      { width: 350, height: this.btnH, fontSize: '14px', fillColor: 0x2c3e50 },
     );
     backBtn.setDepth(10);
     this.actionContent.push(backBtn);

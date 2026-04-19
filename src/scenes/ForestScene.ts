@@ -6,6 +6,8 @@ import { NPC } from '../entities/NPC';
 import { DialogueBox } from '../ui/DialogueBox';
 import { Toast } from '../ui/Toast';
 import { GameState } from '../state/GameState';
+import { EventBus } from '../state/EventBus';
+import { isTouchDevice } from '../utils/mobile';
 import { PET_TEMPLATES } from '../data/pets';
 import { IPetInstance, PetType } from '../types/pet';
 import { createPlayerCombatant, createPetCombatant } from '../battle/Combatant';
@@ -30,6 +32,7 @@ export class ForestScene extends Phaser.Scene {
   private forestDialogueBlocking = false;
   /** Throttle toast when east exit to Shrub is locked (Thornguard). */
   private forestExitEastWarnAt = 0;
+  private nearNpc = false;
 
   constructor() {
     super({ key: 'ForestScene' });
@@ -218,6 +221,16 @@ export class ForestScene extends Phaser.Scene {
     this.interactKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.E) ?? null;
     this.fightKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.R) ?? null;
 
+    if (isTouchDevice()) {
+      EventBus.on('mobile-interact', this.onMobileInteract, this);
+      EventBus.on('mobile-fight', this.onMobileFight, this);
+    }
+    this.events.on('shutdown', () => {
+      EventBus.off('mobile-interact', this.onMobileInteract, this);
+      EventBus.off('mobile-fight', this.onMobileFight, this);
+      EventBus.emit('mobile-action-hide');
+    });
+
     // Click to move
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       this.player.moveTo(pointer.worldX, pointer.worldY);
@@ -259,7 +272,16 @@ export class ForestScene extends Phaser.Scene {
         ) {
           this.startBossBattle();
         }
+        if (!this.nearNpc && isTouchDevice()) {
+          EventBus.emit('mobile-action-show', {
+            showE: true,
+            showR: gsNear.getFlag('forest-boss-unlocked'),
+          });
+        }
+        this.nearNpc = true;
       } else {
+        if (this.nearNpc && isTouchDevice()) EventBus.emit('mobile-action-hide');
+        this.nearNpc = false;
         this.forestQuestNpc.hidePrompt();
       }
     }
@@ -271,6 +293,18 @@ export class ForestScene extends Phaser.Scene {
         this.startBattle(wp);
         break;
       }
+    }
+  }
+
+  private onMobileInteract(): void {
+    if (this.forestQuestNpc && !this.forestDialogueBlocking) {
+      this.forestQuestNpc.interact();
+    }
+  }
+
+  private onMobileFight(): void {
+    if (!this.forestDialogueBlocking && GameState.getInstance().getFlag('forest-boss-unlocked')) {
+      this.startBossBattle();
     }
   }
 
