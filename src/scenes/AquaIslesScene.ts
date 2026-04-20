@@ -204,8 +204,9 @@ export class AquaIslesScene extends Phaser.Scene {
       fontSize: '12px', fontFamily: 'Arial', color: '#ffd700',
     }).setOrigin(0.5).setDepth(10);
 
-    const spawnX = ISLE_A.tx * TILE_SIZE;
-    const spawnY = ISLE_A.ty * TILE_SIZE;
+    const aquaSave = (() => { const s = GameState.getInstance().getState(); return s.playerPosition && s.currentScene === 'AquaIslesScene' ? s.playerPosition : null; })();
+    const spawnX = aquaSave ? aquaSave.x : ISLE_A.tx * TILE_SIZE;
+    const spawnY = aquaSave ? aquaSave.y : ISLE_A.ty * TILE_SIZE;
     this.player = new Player(this, spawnX, spawnY);
     this.player.setDepth(8);
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
@@ -340,6 +341,7 @@ export class AquaIslesScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     this.player.update();
+    GameState.getInstance().setPlayerPosition(this.player.x, this.player.y);
 
     const ptx = Math.floor(this.player.x / TILE_SIZE);
     const pty = Math.floor(this.player.y / TILE_SIZE);

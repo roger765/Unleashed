@@ -22,6 +22,7 @@ function defaultState(name: string, appearance: IPlayerAppearance): IPlayerState
     flags: {},
     counters: {},
     currentScene: 'TitleScene',
+    playerPosition: null,
     lastSpinDate: null,
     quizTowerFloor: 1,
     bossTowerFloor: 1,
@@ -274,6 +275,10 @@ export class GameState {
 
   setCurrentScene(sceneKey: string): void {
     this.state.currentScene = sceneKey;
+  }
+
+  setPlayerPosition(x: number, y: number): void {
+    this.state.playerPosition = { x, y };
   }
 
   // ---- Auto-save ----

@@ -96,9 +96,14 @@ export class TownScene extends Phaser.Scene {
     this.createDeepForestExitLabel();
     this.createPrismWildsGateLabel();
 
-    // Player at center-bottom of town
-    const spawnX = (MAP_COLS / 2) * TILE_SIZE + TILE_SIZE / 2;
-    const spawnY = (MAP_ROWS - 4) * TILE_SIZE + TILE_SIZE / 2;
+    // Player at center-bottom of town, or restored position if resuming a save
+    const gs = GameState.getInstance().getState();
+    let spawnX = (MAP_COLS / 2) * TILE_SIZE + TILE_SIZE / 2;
+    let spawnY = (MAP_ROWS - 4) * TILE_SIZE + TILE_SIZE / 2;
+    if (gs.playerPosition && gs.currentScene === 'TownScene') {
+      spawnX = gs.playerPosition.x;
+      spawnY = gs.playerPosition.y;
+    }
     this.player = new Player(this, spawnX, spawnY);
 
     // Collisions: player vs walls
@@ -134,6 +139,7 @@ export class TownScene extends Phaser.Scene {
 
   update(): void {
     this.player.update();
+    GameState.getInstance().setPlayerPosition(this.player.x, this.player.y);
   }
 
   /* ------------------------------------------------------------------ */

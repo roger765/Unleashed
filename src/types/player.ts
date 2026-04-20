@@ -19,6 +19,7 @@ export interface IPlayerState {
   flags: Record<string, boolean>;
   counters: Record<string, number>;
   currentScene: string;
+  playerPosition: { x: number; y: number } | null;
   lastSpinDate: string | null;
   quizTowerFloor: number;
   bossTowerFloor: number;

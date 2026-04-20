@@ -79,7 +79,8 @@ export class StonyMountainsScene extends Phaser.Scene {
       fontSize: '12px', fontFamily: 'Arial', color: '#ffd700',
     }).setOrigin(0.5).setDepth(10);
 
-    this.player = new Player(this, worldW / 2, worldH - 90);
+    const savedPos = (() => { const s = GameState.getInstance().getState(); return s.playerPosition && s.currentScene === 'StonyMountainsScene' ? s.playerPosition : null; })();
+    this.player = new Player(this, savedPos ? savedPos.x : worldW / 2, savedPos ? savedPos.y : worldH - 90);
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
     this.cameras.main.setBounds(0, 0, worldW, worldH);
     this.physics.add.collider(this.player, walls);
@@ -148,6 +149,7 @@ export class StonyMountainsScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     this.player.update();
+    GameState.getInstance().setPlayerPosition(this.player.x, this.player.y);
 
     if (this.zoneBossNpc) {
       const near = this.physics.overlap(this.player, this.zoneBossNpc.getZone());
