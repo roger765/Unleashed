@@ -11,10 +11,7 @@ export class SaveManager {
     try {
       const raw = localStorage.getItem(SAVE_KEY);
       if (!raw) return null;
-      const state = JSON.parse(raw) as IPlayerState;
-      // Migration: old saves lack playerPosition
-      if (state.playerPosition === undefined) state.playerPosition = null;
-      return state;
+      return JSON.parse(raw) as IPlayerState;
     } catch {
       return null;
     }

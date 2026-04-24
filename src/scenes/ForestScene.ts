@@ -45,9 +45,7 @@ export class ForestScene extends Phaser.Scene {
     const worldW = MAP_W * TILE_SIZE;
     const worldH = MAP_H * TILE_SIZE;
     const entry = (this.scene.settings.data as { entry?: 'west' | 'east' } | undefined)?.entry;
-    const savedPos = (() => { const s = GameState.getInstance().getState(); return !entry && s.playerPosition && s.currentScene === 'ForestScene' ? s.playerPosition : null; })();
-    let spawnX = savedPos ? savedPos.x : (entry === 'east' ? worldW - 96 : 96);
-    let spawnY = savedPos ? savedPos.y : worldH / 2;
+    const spawnX = entry === 'east' ? worldW - 96 : 96;
     this.physics.world.setBounds(0, 0, worldW, worldH);
 
     // Draw tiles
@@ -116,7 +114,7 @@ export class ForestScene extends Phaser.Scene {
     }).setOrigin(1, 0.5).setDepth(10);
 
     // Player
-    this.player = new Player(this, spawnX, spawnY);
+    this.player = new Player(this, spawnX, worldH / 2);
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
     this.cameras.main.setBounds(0, 0, worldW, worldH);
 
@@ -248,7 +246,6 @@ export class ForestScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     this.player.update();
-    GameState.getInstance().setPlayerPosition(this.player.x, this.player.y);
 
     if (this.forestQuestNpc) {
       const near = this.physics.overlap(this.player, this.forestQuestNpc.getZone());

@@ -101,8 +101,7 @@ export class ShrubWoodlandsScene extends Phaser.Scene {
       fontSize: '12px', fontFamily: 'Arial', color: '#4fc3f7',
     }).setOrigin(0.5).setDepth(10);
 
-    const savedPos = (() => { const s = GameState.getInstance().getState(); return s.playerPosition && s.currentScene === 'ShrubWoodlandsScene' ? s.playerPosition : null; })();
-    this.player = new Player(this, savedPos ? savedPos.x : 120, savedPos ? savedPos.y : worldH / 2);
+    this.player = new Player(this, 120, worldH / 2);
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
     this.cameras.main.setBounds(0, 0, worldW, worldH);
     this.physics.add.collider(this.player, this.walls);
@@ -204,7 +203,6 @@ export class ShrubWoodlandsScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     this.player.update();
-    GameState.getInstance().setPlayerPosition(this.player.x, this.player.y);
 
     if (this.zoneBossNpc) {
       const near = this.physics.overlap(this.player, this.zoneBossNpc.getZone());

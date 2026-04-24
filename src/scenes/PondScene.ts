@@ -78,8 +78,7 @@ export class PondScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(10);
 
     // Player
-    const savedPos = (() => { const s = GameState.getInstance().getState(); return s.playerPosition && s.currentScene === 'PondScene' ? s.playerPosition : null; })();
-    this.player = new Player(this, savedPos ? savedPos.x : worldW / 2, savedPos ? savedPos.y : 80);
+    this.player = new Player(this, worldW / 2, 80);
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
     this.cameras.main.setBounds(0, 0, worldW, worldH);
     this.physics.add.collider(this.player, waterWalls);
@@ -157,7 +156,6 @@ export class PondScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     this.player.update();
-    GameState.getInstance().setPlayerPosition(this.player.x, this.player.y);
 
     if (this.zoneBossNpc) {
       const near = this.physics.overlap(this.player, this.zoneBossNpc.getZone());
