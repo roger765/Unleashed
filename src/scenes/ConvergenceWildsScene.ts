@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { TILE_SIZE } from '../constants';
 import { Player } from '../entities/Player';
+import { initSceneMultiplayer, tickSceneMultiplayer, cleanupSceneMultiplayer } from '../multiplayer/sceneMultiplayer';
 import { WildPet } from '../entities/WildPet';
 import { GameState } from '../state/GameState';
 import { PET_TEMPLATES } from '../data/pets';
@@ -192,10 +193,13 @@ export class ConvergenceWildsScene extends Phaser.Scene {
 
     if (!this.scene.isActive('UIScene')) this.scene.launch('UIScene');
     GameState.getInstance().setCurrentScene('ConvergenceWildsScene');
+    initSceneMultiplayer(this);
+    this.events.once('shutdown', () => cleanupSceneMultiplayer(this));
   }
 
   update(_time: number, delta: number): void {
     this.player.update();
+    tickSceneMultiplayer(this, this.player);
     for (const wp of this.wildPets) {
       if (wp.isDefeated()) continue;
       if (wp.updateAI(this.player.x, this.player.y, delta)) {

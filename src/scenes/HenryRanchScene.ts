@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { TILE_SIZE } from '../constants';
 import { Player } from '../entities/Player';
+import { initSceneMultiplayer, tickSceneMultiplayer, cleanupSceneMultiplayer } from '../multiplayer/sceneMultiplayer';
 import { NPC } from '../entities/NPC';
 import { DialogueBox } from '../ui/DialogueBox';
 import { GameState } from '../state/GameState';
@@ -138,10 +139,13 @@ export class HenryRanchScene extends Phaser.Scene {
     }
 
     GameState.getInstance().setCurrentScene('HenryRanchScene');
+    initSceneMultiplayer(this);
+    this.events.once('shutdown', () => cleanupSceneMultiplayer(this));
   }
 
   update(_time: number, _delta: number): void {
     this.player.update();
+    tickSceneMultiplayer(this, this.player);
 
     if (this.henryNpc) {
       const near = this.physics.overlap(this.player, this.henryNpc.getZone());

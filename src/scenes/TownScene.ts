@@ -4,6 +4,7 @@ import { GameState } from '../state/GameState';
 import { Player } from '../entities/Player';
 import { AudioManager } from '../audio/AudioManager';
 import { areAllOverworldZoneBossesDefeated } from '../battle/bossUtils';
+import { initSceneMultiplayer, tickSceneMultiplayer, cleanupSceneMultiplayer } from '../multiplayer/sceneMultiplayer';
 
 const MAP_COLS = 40;
 const MAP_ROWS = 30;
@@ -139,10 +140,14 @@ export class TownScene extends Phaser.Scene {
 
     // Launch UI overlay
     this.scene.launch('UIScene');
+
+    initSceneMultiplayer(this);
+    this.events.once('shutdown', () => cleanupSceneMultiplayer(this));
   }
 
   update(): void {
     this.player.update();
+    tickSceneMultiplayer(this, this.player);
   }
 
   /* ------------------------------------------------------------------ */

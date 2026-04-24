@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { TILE_SIZE } from '../constants';
 import { Player } from '../entities/Player';
+import { initSceneMultiplayer, tickSceneMultiplayer, cleanupSceneMultiplayer } from '../multiplayer/sceneMultiplayer';
 import { WildPet } from '../entities/WildPet';
 import { GameState } from '../state/GameState';
 import { EventBus } from '../state/EventBus';
@@ -199,10 +200,13 @@ export class ShrubWoodlandsScene extends Phaser.Scene {
     }
 
     GameState.getInstance().setCurrentScene('ShrubWoodlandsScene');
+    initSceneMultiplayer(this);
+    this.events.once('shutdown', () => cleanupSceneMultiplayer(this));
   }
 
   update(_time: number, delta: number): void {
     this.player.update();
+    tickSceneMultiplayer(this, this.player);
 
     if (this.zoneBossNpc) {
       const near = this.physics.overlap(this.player, this.zoneBossNpc.getZone());

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { TILE_SIZE } from '../constants';
 import { Player } from '../entities/Player';
+import { initSceneMultiplayer, tickSceneMultiplayer, cleanupSceneMultiplayer } from '../multiplayer/sceneMultiplayer';
 import { WildPet } from '../entities/WildPet';
 import { GameState } from '../state/GameState';
 import { EventBus } from '../state/EventBus';
@@ -152,10 +153,13 @@ export class PondScene extends Phaser.Scene {
 
     if (!this.scene.isActive('UIScene')) this.scene.launch('UIScene');
     GameState.getInstance().setCurrentScene('PondScene');
+    initSceneMultiplayer(this);
+    this.events.once('shutdown', () => cleanupSceneMultiplayer(this));
   }
 
   update(_time: number, delta: number): void {
     this.player.update();
+    tickSceneMultiplayer(this, this.player);
 
     if (this.zoneBossNpc) {
       const near = this.physics.overlap(this.player, this.zoneBossNpc.getZone());
