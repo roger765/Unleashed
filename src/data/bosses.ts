@@ -142,6 +142,21 @@ export const BOSSES: Record<string, IBossDefinition> = {
     specialMoveIds: ['tidal-wave', 'torrent'],
     coinsReward: 145,
   },
+
+  // ── Henry's Ranch (optional secret boss) ──────────────────────
+  henry: {
+    id: 'henry',
+    name: 'Henry Beast Master',
+    level: 22,
+    team: [
+      { petTemplateId: 'henry-beast-master', level: 22 },
+      { petTemplateId: 'mustang', level: 20 },
+      { petTemplateId: 'bullhorn', level: 19 },
+      { petTemplateId: 'coyote', level: 18 },
+    ],
+    specialMoveIds: ['grand-slam', 'arcane-blast'],
+    coinsReward: 300,
+  },
 };
 
 /** All boss ids that count toward "champion" / defeat tracking in battle results. */
@@ -157,6 +172,7 @@ export const ALL_REGISTERED_BOSS_IDS: string[] = [
   'tidemother',
   'deeprock',
   'maelstrom',
+  'henry',
 ];
 
 /** Overworld zone guardians only (excludes Boss Tower). Used for Prism Wilds unlock. */

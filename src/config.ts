@@ -19,6 +19,7 @@ import { ShopScene } from './scenes/ShopScene';
 import { QuizTowerScene } from './scenes/QuizTowerScene';
 import { BossTowerScene } from './scenes/BossTowerScene';
 import { SpinWheelScene } from './ui/SpinWheelUI';
+import { HenryRanchScene } from './scenes/HenryRanchScene';
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -44,5 +45,6 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
     ShrubWoodlandsScene, StonyMountainsScene, AquaIslesScene,
     ForestScene, CaveScene, PondScene, ConvergenceWildsScene,
     ShopScene, QuizTowerScene, BossTowerScene, SpinWheelScene,
+    HenryRanchScene,
   ],
 };

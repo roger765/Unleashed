@@ -68,6 +68,12 @@ function isPrismWildsDoorCell(c: number, r: number): boolean {
   return r === mr && (c === 0 || c === 1);
 }
 
+/** North-side door — Henry's Ranch (top of the vertical center road). */
+function isHenryRanchDoorCell(c: number, r: number): boolean {
+  const mc = Math.floor(MAP_COLS / 2);
+  return r === 0 && (c === mc - 1 || c === mc);
+}
+
 export class TownScene extends Phaser.Scene {
   private player!: Player;
   private wallGroup!: Phaser.Physics.Arcade.StaticGroup;
@@ -75,6 +81,7 @@ export class TownScene extends Phaser.Scene {
   private toastText: Phaser.GameObjects.Text | null = null;
   private forestTransitioning = false;
   private prismGateTransitioning = false;
+  private henryRanchTransitioning = false;
 
   constructor() {
     super({ key: 'TownScene' });
@@ -85,6 +92,7 @@ export class TownScene extends Phaser.Scene {
     // (e.g. forestTransitioning blocked all entries after returning from ForestScene).
     this.forestTransitioning = false;
     this.prismGateTransitioning = false;
+    this.henryRanchTransitioning = false;
     this.doorZones = [];
     this.toastText = null;
 
@@ -95,6 +103,7 @@ export class TownScene extends Phaser.Scene {
     this.createBuildingLabels();
     this.createDeepForestExitLabel();
     this.createPrismWildsGateLabel();
+    this.createHenryRanchLabel();
 
     // Player at center-bottom of town
     const spawnX = (MAP_COLS / 2) * TILE_SIZE + TILE_SIZE / 2;
@@ -208,6 +217,10 @@ export class TownScene extends Phaser.Scene {
     map[midRow][0] = T.DOOR;
     map[midRow][1] = T.DOOR;
 
+    // Henry's Ranch — north edge (top of vertical center road)
+    map[0][midCol - 1] = T.DOOR;
+    map[0][midCol] = T.DOOR;
+
     // Decorative trees around the edges
     const treeSpots = [
       // top edge
@@ -274,6 +287,8 @@ export class TownScene extends Phaser.Scene {
             zone.setData('building', 'DeepForest');
           } else if (isPrismWildsDoorCell(c, r)) {
             zone.setData('building', 'PrismWilds');
+          } else if (isHenryRanchDoorCell(c, r)) {
+            zone.setData('building', 'HenryRanch');
           }
           this.doorZones.push(zone);
         }
@@ -308,6 +323,18 @@ export class TownScene extends Phaser.Scene {
       stroke: '#000000',
       strokeThickness: 3,
     }).setOrigin(0.5, 1);
+  }
+
+  private createHenryRanchLabel(): void {
+    const mc = Math.floor(MAP_COLS / 2);
+    const cx = (mc - 0.5) * TILE_SIZE;
+    this.add.text(cx, TILE_SIZE + 4, "Henry's Ranch", {
+      fontSize: '13px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#ffd700',
+      stroke: '#000000',
+      strokeThickness: 3,
+    }).setOrigin(0.5, 0);
   }
 
   private createPrismWildsGateLabel(): void {
@@ -351,6 +378,12 @@ export class TownScene extends Phaser.Scene {
       case 'Spin Wheel':
         this.scene.stop('UIScene');
         this.scene.start('SpinWheelScene');
+        break;
+      case 'HenryRanch':
+        if (this.henryRanchTransitioning) return;
+        this.henryRanchTransitioning = true;
+        this.scene.stop('UIScene');
+        this.scene.start('HenryRanchScene');
         break;
       case 'DeepForest':
         if (this.forestTransitioning) return;
