@@ -73,7 +73,11 @@ export class UIScene extends Phaser.Scene {
     const barPanelWidth = totalWidth + 24;
     const barPanelHeight = ICON_SIZE + 16;
     const barX = SCREEN_WIDTH / 2;
-    const barY = this.scale.height - HUD_PADDING - barPanelHeight / 2;
+    // On touch devices add extra clearance so the bar clears the browser chrome
+    // (iOS home indicator ~21px, Safari toolbar ~50px, Android nav bar ~48px).
+    // 56 extra game-pixels keeps the bar visible on all common mobile viewports.
+    const barBottomPad = isTouchDevice() ? HUD_PADDING + 56 : HUD_PADDING;
+    const barY = SCREEN_HEIGHT - barBottomPad - barPanelHeight / 2;
 
     // Background panel for menu bar
     const barBg = this.add.graphics();
