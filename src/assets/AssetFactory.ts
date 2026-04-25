@@ -126,6 +126,9 @@ export class AssetFactory {
         case PetType.Water:
           AssetFactory.drawWaterPet(scene, template.id);
           break;
+        case PetType.Normal:
+          AssetFactory.drawNormalPet(scene, template.id);
+          break;
       }
     }
   }
@@ -1045,6 +1048,213 @@ export class AssetFactory {
         g.lineStyle(3, 0xffe082);
         g.strokeCircle(24, 34, 20);
         AssetFactory.drawEyes(g, 24, 30, 8, 2);
+        break;
+      }
+    }
+
+    AssetFactory.finish(g, id, s, s);
+  }
+
+  // --- NORMAL PETS (Henry's Ranch exclusives) ---
+
+  private static drawNormalPet(scene: Phaser.Scene, id: string): void {
+    const g = AssetFactory.gfx(scene);
+    const s = 48;
+
+    switch (id) {
+      // ── Mustang — chestnut horse, profile facing right ──────────
+      case 'mustang': {
+        // Tail (far left, drawn first so body covers base)
+        g.fillStyle(0x3B1A08);
+        g.fillEllipse(5, 28, 7, 22);
+        g.fillStyle(0x5C2A10);
+        g.fillEllipse(5, 30, 4, 16);
+        // Body
+        g.fillStyle(0x8B4513);
+        g.fillEllipse(20, 32, 30, 16);
+        // Neck
+        g.fillRect(26, 20, 9, 14);
+        // Head
+        g.fillStyle(0xA0522D);
+        g.fillEllipse(37, 17, 15, 11);
+        // Mane along neck
+        g.fillStyle(0x3B1A08);
+        g.fillRect(26, 14, 5, 12);
+        g.fillEllipse(28, 13, 8, 7);
+        // Ear
+        g.fillStyle(0x8B4513);
+        g.fillTriangle(33, 8, 30, 16, 36, 16);
+        g.fillStyle(0xFFB3B3);
+        g.fillTriangle(33, 10, 31, 15, 35, 15);
+        // Nostril
+        g.fillStyle(0x3B1A08);
+        g.fillCircle(43, 18, 2);
+        // Legs
+        g.fillStyle(0x6B3410);
+        g.fillRect(10, 37, 4, 11);
+        g.fillRect(16, 37, 4, 10);
+        g.fillRect(23, 37, 4, 10);
+        g.fillRect(29, 37, 4, 11);
+        // Hooves
+        g.fillStyle(0x2E1B00);
+        g.fillRect(9, 45, 6, 3);
+        g.fillRect(15, 44, 6, 3);
+        g.fillRect(22, 44, 6, 3);
+        g.fillRect(28, 45, 6, 3);
+        // Eyes
+        AssetFactory.drawEyes(g, 36, 15, 7, 2.5);
+        break;
+      }
+
+      // ── Bullhorn — stocky dark bull with ivory horns ─────────────
+      case 'bullhorn': {
+        // Tail
+        g.fillStyle(0x2E1B15);
+        g.fillEllipse(5, 28, 5, 18);
+        // Body
+        g.fillStyle(0x3E2723);
+        g.fillEllipse(20, 33, 32, 18);
+        // Head
+        g.fillEllipse(35, 21, 18, 15);
+        // Horns (ivory, sweeping outward)
+        g.fillStyle(0xFFFDE7);
+        g.fillTriangle(30, 15, 24, 2, 33, 12);
+        g.fillTriangle(40, 15, 47, 2, 38, 12);
+        // Horn shading
+        g.fillStyle(0xE8E0C0);
+        g.fillTriangle(31, 15, 26, 5, 33, 13);
+        g.fillTriangle(39, 15, 45, 5, 37, 13);
+        // Snout
+        g.fillStyle(0x5D4037);
+        g.fillEllipse(37, 25, 11, 8);
+        // Nostrils
+        g.fillStyle(0x2E1B15);
+        g.fillCircle(34, 25, 2);
+        g.fillCircle(40, 25, 2);
+        // Legs (short, stout)
+        g.fillStyle(0x2E1B15);
+        g.fillRect(8, 38, 5, 10);
+        g.fillRect(15, 38, 5, 9);
+        g.fillRect(23, 38, 5, 9);
+        g.fillRect(30, 38, 5, 10);
+        // Angry brow
+        g.lineStyle(2, 0x000000);
+        g.beginPath(); g.moveTo(30, 14); g.lineTo(34, 17); g.strokePath();
+        g.beginPath(); g.moveTo(41, 14); g.lineTo(37, 17); g.strokePath();
+        // Eyes
+        AssetFactory.drawEyes(g, 35, 19, 9, 3);
+        break;
+      }
+
+      // ── Coyote — lean tan predator with pointed ears ─────────────
+      case 'coyote': {
+        // Bushy tail (far left)
+        g.fillStyle(0xC8A87E);
+        g.fillEllipse(5, 26, 9, 24);
+        g.fillStyle(0xF5ECD7);
+        g.fillEllipse(5, 28, 5, 16);
+        // Body (lean)
+        g.fillStyle(0xC8A87E);
+        g.fillEllipse(19, 31, 24, 13);
+        // Head
+        g.fillCircle(29, 19, 10);
+        // Ears (pointed)
+        g.fillStyle(0xB8966A);
+        g.fillTriangle(24, 7, 20, 18, 27, 18);
+        g.fillTriangle(33, 7, 29, 18, 36, 18);
+        // Inner ear pink
+        g.fillStyle(0xFFB3C6);
+        g.fillTriangle(24, 10, 22, 17, 27, 17);
+        g.fillTriangle(33, 10, 30, 17, 35, 17);
+        // Snout (elongated, pointing right)
+        g.fillStyle(0xC8A87E);
+        g.fillEllipse(37, 22, 14, 8);
+        // Nose
+        g.fillStyle(0x2E1B00);
+        g.fillCircle(43, 21, 3);
+        g.fillStyle(0x000000);
+        g.fillCircle(43, 21, 2);
+        // Legs (thin)
+        g.fillStyle(0xB8966A);
+        g.fillRect(11, 36, 3, 12);
+        g.fillRect(17, 36, 3, 11);
+        g.fillRect(23, 36, 3, 11);
+        g.fillRect(29, 36, 3, 12);
+        // Paws
+        g.fillStyle(0xA07850);
+        g.fillEllipse(12, 47, 5, 3);
+        g.fillEllipse(18, 46, 5, 3);
+        g.fillEllipse(24, 46, 5, 3);
+        g.fillEllipse(30, 47, 5, 3);
+        // Eyes (sharp, angular)
+        AssetFactory.drawEyes(g, 28, 18, 8, 2.5);
+        break;
+      }
+
+      // ── Henry Beast Master — cowboy human fighter ────────────────
+      case 'henry-beast-master': {
+        // Hat crown
+        g.fillStyle(0x4E342E);
+        g.fillRect(17, 1, 15, 9);
+        // Hat brim
+        g.fillRect(10, 8, 28, 4);
+        // Hat band
+        g.fillStyle(0x8B6914);
+        g.fillRect(17, 7, 15, 3);
+        // Hat buckle
+        g.fillStyle(0xFFD700);
+        g.fillRect(22, 7, 5, 3);
+        // Head (skin tone)
+        g.fillStyle(0xF5CBA7);
+        g.fillCircle(24, 18, 9);
+        // Mustache
+        g.fillStyle(0x5C3A1E);
+        g.fillEllipse(21, 22, 7, 3);
+        g.fillEllipse(28, 22, 7, 3);
+        // Neck
+        g.fillStyle(0xF5CBA7);
+        g.fillRect(21, 26, 6, 4);
+        // Flannel shirt
+        g.fillStyle(0x8D4A3C);
+        g.fillRect(13, 28, 22, 12);
+        // Shirt stripes
+        g.fillStyle(0x7B3B30);
+        g.fillRect(13, 31, 22, 2);
+        g.fillRect(13, 35, 22, 2);
+        // Arms
+        g.fillStyle(0x8D4A3C);
+        g.fillRect(7, 28, 6, 10);
+        g.fillRect(35, 28, 6, 10);
+        // Hands
+        g.fillStyle(0xF5CBA7);
+        g.fillCircle(10, 39, 3);
+        g.fillCircle(38, 39, 3);
+        // Belt
+        g.fillStyle(0x3E2723);
+        g.fillRect(13, 39, 22, 4);
+        // Buckle
+        g.fillStyle(0xFFD700);
+        g.fillRect(20, 39, 8, 4);
+        // Jeans
+        g.fillStyle(0x1565C0);
+        g.fillRect(14, 42, 8, 6);
+        g.fillRect(26, 42, 8, 6);
+        // Boots
+        g.fillStyle(0x3E2723);
+        g.fillRect(12, 44, 10, 4);
+        g.fillRect(26, 44, 10, 4);
+        // Eyes
+        AssetFactory.drawEyes(g, 24, 17, 9, 2.5);
+        break;
+      }
+
+      default: {
+        // Fallback for any future Normal-type pet
+        g.fillStyle(0x9E9E9E);
+        g.fillCircle(24, 28, 16);
+        g.fillStyle(0xBDBDBD);
+        g.fillCircle(24, 22, 10);
+        AssetFactory.drawEyes(g, 24, 22, 8, 3);
         break;
       }
     }
