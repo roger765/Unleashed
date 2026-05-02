@@ -136,7 +136,7 @@ export class SpinWheelScene extends Phaser.Scene {
     }
 
     // Record spin date
-    gs.getState().lastSpinDate = new Date().toISOString().split('T')[0];
+    gs.setLastSpinDate(new Date().toISOString().split('T')[0]);
 
     Toast.show(this, `You won: ${seg.label}!`, 3000);
   }

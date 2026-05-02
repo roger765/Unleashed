@@ -9,7 +9,7 @@ if (navigator.maxTouchPoints > 0) {
 const game = new Phaser.Game(gameConfig);
 
 function saveWhenLeaving(): void {
-  GameState.getInstance().saveOnExitIfNeeded();
+  GameState.getInstance().flushSave();
 }
 
 // Closing the tab, refresh, or navigating away

@@ -43,7 +43,9 @@ function recalcPetStats(pet: IPetInstance): void {
 
 export class GameState {
   private static instance: GameState;
+  private static readonly AUTO_SAVE_DEBOUNCE_MS = 400;
   private state!: IPlayerState;
+  private pendingPersistTimer: number | null = null;
 
   private constructor() {
     // Initialize with a throwaway state; real init happens via reset() or setState().
@@ -61,6 +63,8 @@ export class GameState {
 
   reset(name: string, appearance: IPlayerAppearance): void {
     this.state = defaultState(name, appearance);
+    this.state.currentScene = 'TutorialScene';
+    this.schedulePersist();
   }
 
   getState(): IPlayerState {
@@ -68,6 +72,7 @@ export class GameState {
   }
 
   setState(state: IPlayerState): void {
+    this.clearPendingPersist();
     this.state = state;
   }
 
@@ -76,12 +81,14 @@ export class GameState {
   addCoins(amount: number): void {
     this.state.coins += amount;
     EventBus.emit('coins-changed', this.state.coins);
+    this.schedulePersist();
   }
 
   removeCoins(amount: number): boolean {
     if (this.state.coins < amount) return false;
     this.state.coins -= amount;
     EventBus.emit('coins-changed', this.state.coins);
+    this.schedulePersist();
     return true;
   }
 
@@ -90,12 +97,14 @@ export class GameState {
   addSpirits(amount: number): void {
     this.state.spirits += amount;
     EventBus.emit('spirits-changed', this.state.spirits);
+    this.schedulePersist();
   }
 
   removeSpirits(amount: number): boolean {
     if (this.state.spirits < amount) return false;
     this.state.spirits -= amount;
     EventBus.emit('spirits-changed', this.state.spirits);
+    this.schedulePersist();
     return true;
   }
 
@@ -109,6 +118,7 @@ export class GameState {
       this.state.inventory.push({ itemId, quantity });
     }
     EventBus.emit('inventory-changed', this.state.inventory);
+    this.schedulePersist();
   }
 
   removeItem(itemId: string, quantity: number): boolean {
@@ -119,6 +129,7 @@ export class GameState {
       this.state.inventory = this.state.inventory.filter((s) => s.itemId !== itemId);
     }
     EventBus.emit('inventory-changed', this.state.inventory);
+    this.schedulePersist();
     return true;
   }
 
@@ -131,10 +142,12 @@ export class GameState {
 
   equipWeapon(itemId: string): void {
     this.state.equippedWeaponId = itemId;
+    this.schedulePersist();
   }
 
   unequipWeapon(): void {
     this.state.equippedWeaponId = null;
+    this.schedulePersist();
   }
 
   // ---- Team ----
@@ -143,6 +156,7 @@ export class GameState {
     if (this.state.team.length >= MAX_TEAM_SIZE) return false;
     this.state.team.push(pet);
     EventBus.emit('team-changed', this.state.team);
+    this.schedulePersist();
     return true;
   }
 
@@ -150,6 +164,7 @@ export class GameState {
     if (index < 0 || index >= this.state.team.length) return null;
     const [removed] = this.state.team.splice(index, 1);
     EventBus.emit('team-changed', this.state.team);
+    this.schedulePersist();
     return removed;
   }
 
@@ -157,11 +172,13 @@ export class GameState {
 
   addPetToStorage(pet: IPetInstance): void {
     this.state.storage.push(pet);
+    this.schedulePersist();
   }
 
   removePetFromStorage(index: number): IPetInstance | null {
     if (index < 0 || index >= this.state.storage.length) return null;
     const [removed] = this.state.storage.splice(index, 1);
+    this.schedulePersist();
     return removed;
   }
 
@@ -179,6 +196,7 @@ export class GameState {
     pet.templateId = def.into;
     recalcPetStats(pet);
     pet.currentHp = pet.maxHp;
+    this.schedulePersist();
     return true;
   }
 
@@ -204,6 +222,7 @@ export class GameState {
     team[teamIndex] = storage[storageIndex];
     storage[storageIndex] = temp;
     EventBus.emit('team-changed', this.state.team);
+    this.schedulePersist();
   }
 
   // ---- XP / Levelling ----
@@ -231,6 +250,7 @@ export class GameState {
       EventBus.emit('team-changed', this.state.team);
     }
 
+    this.schedulePersist();
     return levelled;
   }
 
@@ -248,6 +268,7 @@ export class GameState {
       levelled = true;
     }
 
+    this.schedulePersist();
     return levelled;
   }
 
@@ -259,6 +280,7 @@ export class GameState {
 
   setFlag(key: string, value: boolean): void {
     this.state.flags[key] = value;
+    this.schedulePersist();
   }
 
   getCounter(key: string): number {
@@ -267,6 +289,7 @@ export class GameState {
 
   incrementCounter(key: string, amount: number = 1): number {
     this.state.counters[key] = (this.state.counters[key] ?? 0) + amount;
+    this.schedulePersist();
     return this.state.counters[key];
   }
 
@@ -274,12 +297,23 @@ export class GameState {
 
   setCurrentScene(sceneKey: string): void {
     this.state.currentScene = sceneKey;
+    this.schedulePersist();
+  }
+
+  setLastSpinDate(isoDate: string): void {
+    this.state.lastSpinDate = isoDate;
+    this.schedulePersist();
   }
 
   // ---- Auto-save ----
 
   autoSave(): void {
-    SaveManager.save(this.state);
+    this.flushSave();
+  }
+
+  flushSave(): void {
+    this.clearPendingPersist();
+    this.writeSaveIfPlayable();
   }
 
   /** True after character create or loading a save — avoids writing empty state on exit. */
@@ -289,8 +323,26 @@ export class GameState {
 
   /** Save when the player leaves the page or app (tab close, refresh, navigate away). */
   saveOnExitIfNeeded(): void {
-    if (this.hasPlayableSave()) {
-      this.autoSave();
-    }
+    this.flushSave();
+  }
+
+  private schedulePersist(): void {
+    if (!this.hasPlayableSave()) return;
+    this.clearPendingPersist();
+    this.pendingPersistTimer = window.setTimeout(() => {
+      this.pendingPersistTimer = null;
+      this.writeSaveIfPlayable();
+    }, GameState.AUTO_SAVE_DEBOUNCE_MS);
+  }
+
+  private clearPendingPersist(): void {
+    if (this.pendingPersistTimer === null) return;
+    window.clearTimeout(this.pendingPersistTimer);
+    this.pendingPersistTimer = null;
+  }
+
+  private writeSaveIfPlayable(): void {
+    if (!this.hasPlayableSave()) return;
+    SaveManager.save(this.state);
   }
 }
