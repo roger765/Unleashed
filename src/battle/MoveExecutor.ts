@@ -22,6 +22,10 @@ export function executeMove(
     const baseDamage = move.power + attacker.attack - target.defense;
     const variation = 1 + (randomInt(-10, 10) / 100);
     let damage = Math.floor(baseDamage * multiplier * variation);
+    const resistPercent = target.resistances?.[move.type] ?? 0;
+    if (resistPercent > 0) {
+      damage = Math.floor(damage * (1 - resistPercent / 100));
+    }
     damage = Math.max(1, damage);
 
     target.currentHp = clamp(target.currentHp - damage, 0, target.maxHp);

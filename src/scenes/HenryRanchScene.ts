@@ -9,7 +9,7 @@ import { EventBus } from '../state/EventBus';
 import { isTouchDevice } from '../utils/mobile';
 import { PET_TEMPLATES } from '../data/pets';
 import { IPetInstance } from '../types/pet';
-import { createPlayerCombatant, createPetCombatant } from '../battle/Combatant';
+import { buildPlayerTeamFromState } from '../battle/Combatant';
 import { BattleConfig } from '../battle/BattleManager';
 import { AudioManager } from '../audio/AudioManager';
 import { BOSSES } from '../data/bosses';
@@ -103,19 +103,11 @@ export class HenryRanchScene extends Phaser.Scene {
       this.time.delayedCall(700, () => this.awardHenryPets());
     }
 
-    // Henry NPC — only present before defeat
+    // Henry NPC — always present; dialogue changes after first defeat
     const henryX = HENRY_COL * TILE_SIZE + TILE_SIZE / 2;
     const henryY = HENRY_ROW * TILE_SIZE + TILE_SIZE / 2;
-
-    if (!gs.getFlag('boss-defeated-henry')) {
-      this.henryNpc = new NPC(this, henryX, henryY, 'npc-quest', 'henry',
-        () => this.onHenryTalk());
-    } else {
-      this.add.text(henryX, henryY - 20, 'Henry\n(Retired)', {
-        fontSize: '11px', fontFamily: 'Arial', color: '#aaaaaa',
-        stroke: '#000', strokeThickness: 2, align: 'center',
-      }).setOrigin(0.5).setDepth(5);
-    }
+    this.henryNpc = new NPC(this, henryX, henryY, 'npc-quest', 'henry',
+      () => this.onHenryTalk());
 
     this.interactKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.E) ?? null;
     this.fightKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.R) ?? null;
@@ -174,11 +166,22 @@ export class HenryRanchScene extends Phaser.Scene {
     if (this.dialogueBlocking) return;
     this.dialogueBlocking = true;
     const dialogue = new DialogueBox(this);
-    dialogue.show('Henry Beast Master', [
-      "Welcome to my ranch, stranger.",
-      "Mustang, Bullhorn, and Coyote — my three. The finest this side of anywhere.",
-      "Think you can take all four of us? Press R when you're ready.",
-    ], () => { this.dialogueBlocking = false; });
+    const defeated = GameState.getInstance().getFlag('boss-defeated-henry');
+    if (defeated) {
+      const lines = [
+        "Ha! Good to see you again, friend.",
+        "Not many folks can say they bested me and my three.",
+        "Mustang's been a bit moody since the loss, but don't take it personal.",
+        "You're welcome here any time. Press R if you want another go.",
+      ];
+      dialogue.show('Henry Beast Master', lines, () => { this.dialogueBlocking = false; });
+    } else {
+      dialogue.show('Henry Beast Master', [
+        "Welcome to my ranch, stranger.",
+        "Mustang, Bullhorn, and Coyote — my three. The finest this side of anywhere.",
+        "Think you can take all four of us? Press R when you're ready.",
+      ], () => { this.dialogueBlocking = false; });
+    }
   }
 
   private onMobileInteract(): void {
@@ -195,10 +198,7 @@ export class HenryRanchScene extends Phaser.Scene {
     const gs = GameState.getInstance();
     const state = gs.getState();
 
-    const playerTeam = [createPlayerCombatant(state.name, state.level, state.equippedWeaponId)];
-    for (let i = 0; i < state.team.length; i++) {
-      playerTeam.push(createPetCombatant(state.team[i], `pet-${i}`));
-    }
+    const playerTeam = buildPlayerTeamFromState(state);
 
     const enemyTeam = buildBossEnemyTeam(boss);
     applyBossSpecialMoves(enemyTeam, boss);

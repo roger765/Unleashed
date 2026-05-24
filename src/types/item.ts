@@ -5,7 +5,12 @@ export enum ItemType {
   Food,
   Weapon,
   Staff,
+  ArmorHelmet,
+  ArmorChest,
+  ArmorBoots,
 }
+
+export type ArmorSlot = 'helmet' | 'chest' | 'boots';
 
 export interface IItem {
   id: string;
@@ -18,4 +23,8 @@ export interface IItem {
   healDuration?: number;
   attackType?: PetType;
   moveIds?: string[];
+  defenseBoost?: number;
+  hpBoostPercent?: number;
+  resistType?: PetType;
+  resistPercent?: number;
 }

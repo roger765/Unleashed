@@ -5,6 +5,12 @@ export interface IPlayerAppearance {
   skinColor: string;
 }
 
+export interface IEquippedArmor {
+  helmet: string | null;
+  chest: string | null;
+  boots: string | null;
+}
+
 export interface IPlayerState {
   name: string;
   appearance: IPlayerAppearance;
@@ -13,6 +19,7 @@ export interface IPlayerState {
   coins: number;
   spirits: number;
   equippedWeaponId: string | null;
+  equippedArmor: IEquippedArmor;
   team: IPetInstance[];
   storage: IPetInstance[];
   inventory: { itemId: string; quantity: number }[];

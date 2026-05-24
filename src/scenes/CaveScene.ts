@@ -8,7 +8,7 @@ import { EventBus } from '../state/EventBus';
 import { isTouchDevice } from '../utils/mobile';
 import { PET_TEMPLATES } from '../data/pets';
 import { IPetInstance } from '../types/pet';
-import { createPlayerCombatant, createPetCombatant } from '../battle/Combatant';
+import { createPetCombatant, buildPlayerTeamFromState } from '../battle/Combatant';
 import { BattleConfig } from '../battle/BattleManager';
 import { randomInt } from '../utils/math';
 import { AudioManager } from '../audio/AudioManager';
@@ -79,7 +79,7 @@ export class CaveScene extends Phaser.Scene {
     });
 
     // Chests
-    const caveChest = new Chest(this, 10 * TILE_SIZE, 8 * TILE_SIZE, 'cave-1', 60, { itemId: 'super-health-potion', quantity: 1 });
+    const caveChest = new Chest(this, 10 * TILE_SIZE, 8 * TILE_SIZE, 'cave-1', 60, { itemId: 'leather-cap', quantity: 1 });
     this.physics.add.overlap(this.player, caveChest, () => caveChest.open());
 
     // Spawn Rock-type pets
@@ -200,10 +200,7 @@ export class CaveScene extends Phaser.Scene {
     const gs = GameState.getInstance();
     const state = gs.getState();
 
-    const playerTeam = [createPlayerCombatant(state.name, state.level, state.equippedWeaponId)];
-    for (let i = 0; i < state.team.length; i++) {
-      playerTeam.push(createPetCombatant(state.team[i], `pet-${i}`));
-    }
+    const playerTeam = buildPlayerTeamFromState(state);
 
     const hp = Math.floor(wildPet.petTemplate.baseHp + wildPet.petLevel * wildPet.petTemplate.baseHp * 0.1);
     const atk = Math.floor(wildPet.petTemplate.baseAttack + wildPet.petLevel * wildPet.petTemplate.baseAttack * 0.1);
@@ -233,10 +230,7 @@ export class CaveScene extends Phaser.Scene {
 
     const gs = GameState.getInstance();
     const state = gs.getState();
-    const playerTeam = [createPlayerCombatant(state.name, state.level, state.equippedWeaponId)];
-    for (let i = 0; i < state.team.length; i++) {
-      playerTeam.push(createPetCombatant(state.team[i], `pet-${i}`));
-    }
+    const playerTeam = buildPlayerTeamFromState(state);
 
     const enemyTeam = buildBossEnemyTeam(boss);
     applyBossSpecialMoves(enemyTeam, boss);

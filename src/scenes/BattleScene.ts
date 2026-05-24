@@ -777,12 +777,31 @@ export class BattleScene extends Phaser.Scene {
         gs.addSpirits(rewards.wildSpirits);
       }
 
-      // Track boss defeat for tower progression
+      // Track boss defeat for tower progression + award armor drops
       if (this.manager.config.isBoss) {
+        const bossArmorRewards: Record<string, { itemId: string; name: string }> = {
+          'thornguard': { itemId: 'iron-helm', name: 'Iron Helm' },
+          'tidemother': { itemId: 'iron-chestplate', name: 'Iron Chestplate' },
+          'cragnar': { itemId: 'iron-boots', name: 'Iron Boots' },
+          'henry': { itemId: 'iron-chestplate', name: 'Iron Chestplate' },
+          'deeprock': { itemId: 'iron-helm', name: 'Iron Helm' },
+          'grovekeeper': { itemId: 'iron-boots', name: 'Iron Boots' },
+        };
         for (const bid of ALL_REGISTERED_BOSS_IDS) {
           if (gs.getFlag(`fighting-boss-${bid}`)) {
             gs.setFlag(`boss-defeated-${bid}`, true);
             gs.setFlag(`fighting-boss-${bid}`, false);
+            const reward = bossArmorRewards[bid];
+            if (reward && !gs.getFlag(`boss-armor-claimed-${bid}`)) {
+              gs.addItem(reward.itemId, 1);
+              gs.setFlag(`boss-armor-claimed-${bid}`, true);
+              const armorNotice = this.add.text(cx, cy + 10,
+                `Armor drop: ${reward.name}!`, {
+                fontSize: '18px', fontFamily: 'Arial Black', color: '#e67e22',
+                stroke: '#000', strokeThickness: 3,
+              }).setOrigin(0.5).setDepth(201);
+              this.actionContent.push(armorNotice);
+            }
           }
         }
       }

@@ -80,4 +80,104 @@ export const ITEMS: Record<string, IItem> = {
     buyPrice: 15,
     healAmount: 100,
   },
+
+  // --- Armor Tier 1: Defense only (shop, cheap) ---
+
+  'leather-cap': {
+    id: 'leather-cap',
+    name: 'Leather Cap',
+    itemType: ItemType.ArmorHelmet,
+    description: 'A simple cap stitched from cured hide. +5 defense for your team.',
+    buyPrice: 80,
+    defenseBoost: 5,
+  },
+  'leather-vest': {
+    id: 'leather-vest',
+    name: 'Leather Vest',
+    itemType: ItemType.ArmorChest,
+    description: 'A sturdy vest tanned from wild hide. +8 defense for your team.',
+    buyPrice: 100,
+    defenseBoost: 8,
+  },
+  'leather-boots': {
+    id: 'leather-boots',
+    name: 'Leather Boots',
+    itemType: ItemType.ArmorBoots,
+    description: 'Soft boots that keep your team light on their feet. +4 defense for your team.',
+    buyPrice: 60,
+    defenseBoost: 4,
+  },
+
+  // --- Armor Tier 2: Defense + HP boost (shop, moderate) ---
+
+  'iron-helm': {
+    id: 'iron-helm',
+    name: 'Iron Helm',
+    itemType: ItemType.ArmorHelmet,
+    description: 'A solid helmet worn by veteran tamers. +12 defense and +10% max HP for your team.',
+    buyPrice: 250,
+    defenseBoost: 12,
+    hpBoostPercent: 10,
+  },
+  'iron-chestplate': {
+    id: 'iron-chestplate',
+    name: 'Iron Chestplate',
+    itemType: ItemType.ArmorChest,
+    description: 'Heavy iron plate forged at the mountain forge. +18 defense and +15% max HP for your team.',
+    buyPrice: 350,
+    defenseBoost: 18,
+    hpBoostPercent: 15,
+  },
+  'iron-boots': {
+    id: 'iron-boots',
+    name: 'Iron Boots',
+    itemType: ItemType.ArmorBoots,
+    description: 'Plated boots that shrug off glancing blows. +8 defense and +8% max HP for your team.',
+    buyPrice: 175,
+    defenseBoost: 8,
+    hpBoostPercent: 8,
+  },
+
+  // --- Armor Tier 3: Elemental resistance (shop, expensive) ---
+
+  'rock-plate': {
+    id: 'rock-plate',
+    name: 'Rock Plate',
+    itemType: ItemType.ArmorChest,
+    description: 'Dense stone-forged plate. +10 defense and reduces Rock-type damage by 30%.',
+    buyPrice: 420,
+    defenseBoost: 10,
+    resistType: PetType.Rock,
+    resistPercent: 30,
+  },
+  'nature-vest': {
+    id: 'nature-vest',
+    name: 'Nature Vest',
+    itemType: ItemType.ArmorChest,
+    description: 'Woven from enchanted vines. +10 defense and reduces Nature-type damage by 30%.',
+    buyPrice: 420,
+    defenseBoost: 10,
+    resistType: PetType.Nature,
+    resistPercent: 30,
+  },
+  'wood-cuirass': {
+    id: 'wood-cuirass',
+    name: 'Wood Cuirass',
+    itemType: ItemType.ArmorChest,
+    description: 'Carved from ironwood heartwood. +10 defense and reduces Wood-type damage by 30%.',
+    buyPrice: 420,
+    defenseBoost: 10,
+    resistType: PetType.Wood,
+    resistPercent: 30,
+  },
+  'water-mail': {
+    id: 'water-mail',
+    name: 'Water Mail',
+    itemType: ItemType.ArmorChest,
+    description: 'Scales harvested from the deep. +10 defense and reduces Water-type damage by 30%.',
+    buyPrice: 420,
+    defenseBoost: 10,
+    resistType: PetType.Water,
+    resistPercent: 30,
+  },
 };

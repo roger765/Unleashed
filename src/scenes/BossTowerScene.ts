@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from '../constants';
 import { GameState } from '../state/GameState';
 import { BOSSES } from '../data/bosses';
-import { createPlayerCombatant, createPetCombatant } from '../battle/Combatant';
+import { buildPlayerTeamFromState } from '../battle/Combatant';
 import { BattleConfig } from '../battle/BattleManager';
 import { applyBossSpecialMoves, buildBossEnemyTeam } from '../battle/bossUtils';
 import { Button } from '../ui/Button';
@@ -94,10 +94,7 @@ export class BossTowerScene extends Phaser.Scene {
     const state = gs.getState();
 
     // Build player team
-    const playerTeam = [createPlayerCombatant(state.name, state.level, state.equippedWeaponId)];
-    for (let i = 0; i < state.team.length; i++) {
-      playerTeam.push(createPetCombatant(state.team[i], `pet-${i}`));
-    }
+    const playerTeam = buildPlayerTeamFromState(state);
 
     const enemyTeam = buildBossEnemyTeam(boss);
     applyBossSpecialMoves(enemyTeam, boss);

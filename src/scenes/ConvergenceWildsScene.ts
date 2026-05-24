@@ -6,7 +6,7 @@ import { WildPet } from '../entities/WildPet';
 import { GameState } from '../state/GameState';
 import { PET_TEMPLATES } from '../data/pets';
 import { IPetInstance, IPetTemplate, PetType } from '../types/pet';
-import { createPlayerCombatant, createPetCombatant } from '../battle/Combatant';
+import { createPetCombatant, buildPlayerTeamFromState } from '../battle/Combatant';
 import { BattleConfig } from '../battle/BattleManager';
 import { randomInt } from '../utils/math';
 import { AudioManager } from '../audio/AudioManager';
@@ -214,10 +214,7 @@ export class ConvergenceWildsScene extends Phaser.Scene {
     const gs = GameState.getInstance();
     const state = gs.getState();
 
-    const playerTeam = [createPlayerCombatant(state.name, state.level, state.equippedWeaponId)];
-    for (let i = 0; i < state.team.length; i++) {
-      playerTeam.push(createPetCombatant(state.team[i], `pet-${i}`));
-    }
+    const playerTeam = buildPlayerTeamFromState(state);
 
     const hp = Math.floor(
       wildPet.petTemplate.baseHp + wildPet.petLevel * wildPet.petTemplate.baseHp * 0.1,

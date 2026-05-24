@@ -1,4 +1,7 @@
 import { IPlayerAppearance, IPlayerState } from '../types/player';
+import { ArmorSlot } from '../types/item';
+import { ITEMS } from '../data/items';
+import { PetType } from '../types/pet';
 import { IPetInstance } from '../types/pet';
 import { MAX_TEAM_SIZE, LEVEL_CAP } from '../constants';
 import { XP_TABLE } from '../data/xp-table';
@@ -16,6 +19,7 @@ function defaultState(name: string, appearance: IPlayerAppearance): IPlayerState
     coins: 0,
     spirits: 0,
     equippedWeaponId: null,
+    equippedArmor: { helmet: null, chest: null, boots: null },
     team: [],
     storage: [],
     inventory: [],
@@ -73,6 +77,10 @@ export class GameState {
 
   setState(state: IPlayerState): void {
     this.clearPendingPersist();
+    // Migrate saves that predate the armor system
+    if (!state.equippedArmor) {
+      state.equippedArmor = { helmet: null, chest: null, boots: null };
+    }
     this.state = state;
   }
 
@@ -148,6 +156,49 @@ export class GameState {
   unequipWeapon(): void {
     this.state.equippedWeaponId = null;
     this.schedulePersist();
+  }
+
+  equipArmor(slot: ArmorSlot, itemId: string): void {
+    this.state.equippedArmor[slot] = itemId;
+    this.schedulePersist();
+  }
+
+  unequipArmor(slot: ArmorSlot): void {
+    this.state.equippedArmor[slot] = null;
+    this.schedulePersist();
+  }
+
+  getTotalArmorDefenseBonus(): number {
+    const armor = this.state.equippedArmor;
+    const slots = [armor.helmet, armor.chest, armor.boots];
+    return slots.reduce((total, itemId) => {
+      if (!itemId) return total;
+      return total + (ITEMS[itemId]?.defenseBoost ?? 0);
+    }, 0);
+  }
+
+  getArmorHpBoostPercent(): number {
+    const armor = this.state.equippedArmor;
+    const slots = [armor.helmet, armor.chest, armor.boots];
+    return slots.reduce((total, itemId) => {
+      if (!itemId) return total;
+      return total + (ITEMS[itemId]?.hpBoostPercent ?? 0);
+    }, 0);
+  }
+
+  getArmorResistances(): Partial<Record<PetType, number>> {
+    const armor = this.state.equippedArmor;
+    const slots = [armor.helmet, armor.chest, armor.boots];
+    const result: Partial<Record<PetType, number>> = {};
+    for (const itemId of slots) {
+      if (!itemId) continue;
+      const item = ITEMS[itemId];
+      if (item?.resistType !== undefined && item.resistPercent) {
+        const existing = result[item.resistType] ?? 0;
+        result[item.resistType] = Math.min(75, existing + item.resistPercent);
+      }
+    }
+    return result;
   }
 
   // ---- Team ----

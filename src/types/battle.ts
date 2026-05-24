@@ -13,6 +13,7 @@ export interface IBattleCombatant {
   type: PetType;
   moves: IMove[];
   statusEffects: IStatusEffect[];
+  resistances: Partial<Record<PetType, number>>;
 }
 
 export interface IStatusEffect {
