@@ -118,4 +118,10 @@ export class Button extends Phaser.GameObjects.Container {
     this.label.setText(text);
     return this;
   }
+
+  setColor(color: number): this {
+    this.opts.fillColor = color;
+    this.drawBg(color);
+    return this;
+  }
 }
