@@ -201,6 +201,11 @@ export class GameState {
     return result;
   }
 
+  isChampionSetEquipped(): boolean {
+    const { helmet, chest, boots } = this.state.equippedArmor;
+    return helmet === 'champion-helmet' && chest === 'champion-chest' && boots === 'champion-boots';
+  }
+
   // ---- Team ----
 
   addPetToTeam(pet: IPetInstance): boolean {

@@ -5,6 +5,8 @@ import { Player } from '../entities/Player';
 import { AudioManager } from '../audio/AudioManager';
 import { areAllOverworldZoneBossesDefeated } from '../battle/bossUtils';
 import { initSceneMultiplayer, tickSceneMultiplayer, cleanupSceneMultiplayer } from '../multiplayer/sceneMultiplayer';
+import { PET_TEMPLATES } from '../data/pets';
+import { IPetInstance } from '../types/pet';
 
 const MAP_COLS = 40;
 const MAP_ROWS = 30;
@@ -51,6 +53,7 @@ const BUILDINGS: BuildingDef[] = [
   { label: 'Quiz Tower', col: 31, row: 3, w: 6, h: 5, roofTile: T.ROOF_BLUE, doorCol: 2, doorRow: 4, sceneKey: null },
   { label: 'Boss Tower', col: 31, row: 22, w: 6, h: 5, roofTile: T.ROOF_RED, doorCol: 2, doorRow: 4, sceneKey: null },
   { label: 'Spin Wheel', col: 3, row: 23, w: 3, h: 3, roofTile: T.ROOF_RED, doorCol: 1, doorRow: 2, sceneKey: null },
+  { label: 'Castle of Masters', col: 15, row: 19, w: 10, h: 6, roofTile: T.ROOF_BLUE, doorCol: 4, doorRow: 5, sceneKey: null },
 ];
 
 function townMidRow(): number {
@@ -83,6 +86,8 @@ export class TownScene extends Phaser.Scene {
   private forestTransitioning = false;
   private prismGateTransitioning = false;
   private henryRanchTransitioning = false;
+  private castleTransitioning = false;
+  private starterChest!: Phaser.Physics.Arcade.Sprite;
 
   constructor() {
     super({ key: 'TownScene' });
@@ -94,6 +99,7 @@ export class TownScene extends Phaser.Scene {
     this.forestTransitioning = false;
     this.prismGateTransitioning = false;
     this.henryRanchTransitioning = false;
+    this.castleTransitioning = false;
     this.doorZones = [];
     this.toastText = null;
 
@@ -113,6 +119,10 @@ export class TownScene extends Phaser.Scene {
 
     // Collisions: player vs walls
     this.physics.add.collider(this.player, this.wallGroup);
+
+    // Starter chest
+    this.createStarterChest();
+    this.physics.add.overlap(this.player, this.starterChest, () => this.openStarterChest());
 
     // Door overlaps
     for (const zone of this.doorZones) {
@@ -225,6 +235,9 @@ export class TownScene extends Phaser.Scene {
     // Henry's Ranch — north edge (top of vertical center road)
     map[0][midCol - 1] = T.DOOR;
     map[0][midCol] = T.DOOR;
+
+    // Reserve starter chest tile so no tree spawns on it
+    map[12][22] = T.PATH;
 
     // Decorative trees around the edges
     const treeSpots = [
@@ -384,6 +397,12 @@ export class TownScene extends Phaser.Scene {
         this.scene.stop('UIScene');
         this.scene.start('SpinWheelScene');
         break;
+      case 'Castle of Masters':
+        if (this.castleTransitioning) return;
+        this.castleTransitioning = true;
+        this.scene.stop('UIScene');
+        this.scene.start('CastleOfMastersScene');
+        break;
       case 'HenryRanch':
         if (this.henryRanchTransitioning) return;
         this.henryRanchTransitioning = true;
@@ -409,6 +428,69 @@ export class TownScene extends Phaser.Scene {
       default:
         this.showToast(`${label ?? 'This area'} coming soon!`);
     }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*  Starter chest                                                      */
+  /* ------------------------------------------------------------------ */
+
+  private createStarterChest(): void {
+    const x = 22 * TILE_SIZE + TILE_SIZE / 2;
+    const y = 12 * TILE_SIZE + TILE_SIZE / 2;
+    const texture = GameState.getInstance().getFlag('chest-town-starter') ? 'chest-open' : 'chest';
+    this.starterChest = this.physics.add.staticSprite(x, y, texture).setScale(1.5).setDepth(5);
+    this.add.text(x, y - 28, 'Starter Chest', {
+      fontSize: '11px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#ffd700',
+      stroke: '#000000',
+      strokeThickness: 2,
+    }).setOrigin(0.5, 1).setDepth(6);
+  }
+
+  private openStarterChest(): void {
+    const gs = GameState.getInstance();
+    if (gs.getFlag('chest-town-starter')) return;
+    gs.setFlag('chest-town-starter', true);
+    this.starterChest.setTexture('chest-open');
+
+    gs.addCoins(1000);
+
+    for (const weaponId of ['star-staff', 'rock-hammer', 'nature-wand', 'wood-staff', 'water-trident']) {
+      gs.addItem(weaponId, 1);
+    }
+
+    const LEVEL = 30;
+    const petDefs = [
+      { templateId: 'obsidian', nickname: 'Obsidian' },
+      { templateId: 'twig',     nickname: 'Twig'     },
+      { templateId: 'riptide',  nickname: 'Riptide'  },
+      { templateId: 'fern',     nickname: 'Fern'     },
+    ];
+    const teamIsEmpty = gs.getState().team.length === 0;
+
+    for (const { templateId, nickname } of petDefs) {
+      const template = PET_TEMPLATES[templateId];
+      if (!template) continue;
+      const maxHp = Math.floor(template.baseHp + LEVEL * template.baseHp * 0.1);
+      const pet: IPetInstance = {
+        templateId,
+        nickname,
+        level: LEVEL,
+        xp: 0,
+        currentHp: maxHp,
+        maxHp,
+        attack:  Math.floor(template.baseAttack  + LEVEL * template.baseAttack  * 0.1),
+        defense: Math.floor(template.baseDefense + LEVEL * template.baseDefense * 0.1),
+      };
+      if (teamIsEmpty) {
+        if (!gs.addPetToTeam(pet)) gs.addPetToStorage(pet);
+      } else {
+        gs.addPetToStorage(pet);
+      }
+    }
+
+    this.showToast('Found 1000 coins, all weapons & 4 level-30 pets!');
   }
 
   private showToast(message: string): void {

@@ -13,6 +13,7 @@ export function createPetCombatant(
   defenseBonus = 0,
   hpBoostPercent = 0,
   resistances: Partial<Record<PetType, number>> = {},
+  hpBoostFlat = 0,
 ): IBattleCombatant {
   const template = PET_TEMPLATES[pet.templateId];
   const moves: IMove[] = [];
@@ -31,8 +32,8 @@ export function createPetCombatant(
     name: pet.nickname,
     isPlayer: false,
     pet,
-    currentHp: Math.floor(pet.currentHp * hpMult),
-    maxHp: Math.floor(pet.maxHp * hpMult),
+    currentHp: Math.floor(pet.currentHp * hpMult) + hpBoostFlat,
+    maxHp: Math.floor(pet.maxHp * hpMult) + hpBoostFlat,
     attack: pet.attack,
     defense: pet.defense + defenseBonus,
     type: template?.type ?? PetType.Normal,
@@ -49,6 +50,7 @@ export function createPlayerCombatant(
   defenseBonus = 0,
   hpBoostPercent = 0,
   resistances: Partial<Record<PetType, number>> = {},
+  hpBoostFlat = 0,
 ): IBattleCombatant {
   const baseHp = 100;
   const baseAtk = 10;
@@ -57,7 +59,7 @@ export function createPlayerCombatant(
   const atk = Math.floor(baseAtk + level * baseAtk * 0.1);
   const def = Math.floor(baseDef + level * baseDef * 0.1);
   const hpMult = 1 + hpBoostPercent / 100;
-  const hp = Math.floor(rawHp * hpMult);
+  const hp = Math.floor(rawHp * hpMult) + hpBoostFlat;
 
   let moves: IMove[] = [];
   if (equippedWeaponId) {
@@ -89,12 +91,23 @@ export function buildPlayerTeamFromState(state: IPlayerState): IBattleCombatant[
   const gs = GameState.getInstance();
   const defenseBonus = gs.getTotalArmorDefenseBonus();
   const hpBoostPercent = gs.getArmorHpBoostPercent();
-  const resistances = gs.getArmorResistances();
+  const baseResistances = gs.getArmorResistances();
+
+  // Champion set bonus: +300 flat HP and +20% resistance to all damage types
+  const championSet = gs.isChampionSetEquipped();
+  const hpBoostFlat = championSet ? 300 : 0;
+  const resistances = { ...baseResistances };
+  if (championSet) {
+    const allTypes: PetType[] = [PetType.Rock, PetType.Nature, PetType.Wood, PetType.Water, PetType.Normal];
+    for (const type of allTypes) {
+      resistances[type] = Math.min(75, (resistances[type] ?? 0) + 20);
+    }
+  }
 
   const team: IBattleCombatant[] = [];
-  team.push(createPlayerCombatant(state.name, state.level, state.equippedWeaponId, defenseBonus, hpBoostPercent, resistances));
+  team.push(createPlayerCombatant(state.name, state.level, state.equippedWeaponId, defenseBonus, hpBoostPercent, resistances, hpBoostFlat));
   for (let i = 0; i < state.team.length; i++) {
-    team.push(createPetCombatant(state.team[i], `pet-${i}`, defenseBonus, hpBoostPercent, resistances));
+    team.push(createPetCombatant(state.team[i], `pet-${i}`, defenseBonus, hpBoostPercent, resistances, hpBoostFlat));
   }
   return team;
 }

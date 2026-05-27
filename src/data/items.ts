@@ -180,4 +180,34 @@ export const ITEMS: Record<string, IItem> = {
     resistType: PetType.Water,
     resistPercent: 30,
   },
+
+  // --- Champion Armour Set (Castle of Masters — cannot be bought) ---
+
+  'champion-helmet': {
+    id: 'champion-helmet',
+    name: 'Champion Helmet',
+    itemType: ItemType.ArmorHelmet,
+    description: 'A crown forged by the ancient Masters. +30 defense, +20% max HP. Wear the full Champion set for a powerful bonus.',
+    buyPrice: 0,
+    defenseBoost: 30,
+    hpBoostPercent: 20,
+  },
+  'champion-chest': {
+    id: 'champion-chest',
+    name: 'Champion Chest Plate',
+    itemType: ItemType.ArmorChest,
+    description: 'Plate armour engraved with the sigil of the Masters. +40 defense, +25% max HP. Wear the full Champion set for a powerful bonus.',
+    buyPrice: 0,
+    defenseBoost: 40,
+    hpBoostPercent: 25,
+  },
+  'champion-boots': {
+    id: 'champion-boots',
+    name: 'Champion Boots',
+    itemType: ItemType.ArmorBoots,
+    description: 'Swift greaves blessed by the Masters. +20 defense, +15% max HP. Wear the full Champion set for a powerful bonus.',
+    buyPrice: 0,
+    defenseBoost: 20,
+    hpBoostPercent: 15,
+  },
 };

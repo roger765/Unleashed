@@ -157,6 +157,46 @@ export const BOSSES: Record<string, IBossDefinition> = {
     specialMoveIds: ['grand-slam', 'arcane-blast'],
     coinsReward: 300,
   },
+
+  // ── Castle of Masters guardians ───────────────────────────────────
+  'castle-guardian-boots': {
+    id: 'castle-guardian-boots',
+    name: 'Stone Warden',
+    level: 28,
+    team: [
+      { petTemplateId: 'obsidian', level: 28 },
+      { petTemplateId: 'basalt', level: 26 },
+      { petTemplateId: 'marble', level: 25 },
+    ],
+    specialMoveIds: ['boulder-smash', 'earthquake'],
+    coinsReward: 350,
+  },
+
+  'castle-guardian-chest': {
+    id: 'castle-guardian-chest',
+    name: 'Grove Sovereign',
+    level: 32,
+    team: [
+      { petTemplateId: 'ironwood', level: 32 },
+      { petTemplateId: 'flora', level: 30 },
+      { petTemplateId: 'willow', level: 29 },
+    ],
+    specialMoveIds: ['thorn-barrage', 'forest-fury'],
+    coinsReward: 400,
+  },
+
+  'castle-guardian-helmet': {
+    id: 'castle-guardian-helmet',
+    name: 'Tide Sovereign',
+    level: 36,
+    team: [
+      { petTemplateId: 'tsunami', level: 36 },
+      { petTemplateId: 'riptide', level: 34 },
+      { petTemplateId: 'reef', level: 32 },
+    ],
+    specialMoveIds: ['tidal-crash', 'aqua-burst'],
+    coinsReward: 450,
+  },
 };
 
 /** All boss ids that count toward "champion" / defeat tracking in battle results. */
@@ -173,6 +213,9 @@ export const ALL_REGISTERED_BOSS_IDS: string[] = [
   'deeprock',
   'maelstrom',
   'henry',
+  'castle-guardian-boots',
+  'castle-guardian-chest',
+  'castle-guardian-helmet',
 ];
 
 /** Overworld zone guardians only (excludes Boss Tower). Used for Prism Wilds unlock. */
