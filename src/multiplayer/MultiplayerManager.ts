@@ -2,7 +2,7 @@ type PeerData = { name: string; scene: string; x: number; y: number };
 type PeerCallback = (data: PeerData) => void;
 type PeerLeaveCallback = (name: string) => void;
 
-const WS_URL = 'ws://localhost:3001';
+const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:3001';
 const SEND_INTERVAL_MS = 50; // ~20 fps position updates
 
 export class MultiplayerManager {
