@@ -7,6 +7,7 @@ import { GameState } from '../state/GameState';
 import { EventBus } from '../state/EventBus';
 import { isTouchDevice } from '../utils/mobile';
 import { PET_TEMPLATES } from '../data/pets';
+import { rollWildTemplate } from '../utils/spawn';
 import { IPetInstance } from '../types/pet';
 import { createPetCombatant, buildPlayerTeamFromState } from '../battle/Combatant';
 import { BattleConfig } from '../battle/BattleManager';
@@ -264,7 +265,7 @@ export class AquaIslesScene extends Phaser.Scene {
     const landCount = 8;
     for (let i = 0; i < landCount; i++) {
       const tid = AQUA_SPAWN_POOL[randomInt(0, AQUA_SPAWN_POOL.length - 1)];
-      const template = PET_TEMPLATES[tid];
+      const template = rollWildTemplate(PET_TEMPLATES[tid]);
       const cell = walkable[randomInt(0, Math.max(0, walkable.length - 1))];
       const level = randomInt(5, 15);
       this.wildPets.push(new WildPet(this, cell.x + 8, cell.y + 8, template, level));

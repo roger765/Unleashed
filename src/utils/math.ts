@@ -42,13 +42,37 @@ export function rollMiss(): boolean {
  *   Nature > Water > Rock > Wood > Nature  (1.5x)
  *   Reverse direction = 0.5x
  *   Same type or Normal involved = 1.0x
+ *   Light <-> Shadow: each hits the other for 1.5x; both are neutral to the four elements.
  */
-const advantageMap: Record<PetType, PetType> = {
-  [PetType.Nature]: PetType.Water,
-  [PetType.Water]: PetType.Rock,
-  [PetType.Rock]: PetType.Wood,
-  [PetType.Wood]: PetType.Nature,
-  [PetType.Normal]: PetType.Normal, // Normal has no advantage
+const advantageMap: Record<PetType, PetType[]> = {
+  [PetType.Nature]: [PetType.Water],
+  [PetType.Water]: [PetType.Rock],
+  [PetType.Rock]: [PetType.Wood],
+  [PetType.Wood]: [PetType.Nature],
+  [PetType.Normal]: [], // Normal has no advantage
+  [PetType.Light]: [PetType.Shadow],
+  [PetType.Shadow]: [PetType.Light],
+};
+
+/** Every type, in enum order. Use instead of hardcoded type lists. */
+export const ALL_PET_TYPES: PetType[] = [
+  PetType.Rock,
+  PetType.Nature,
+  PetType.Wood,
+  PetType.Water,
+  PetType.Normal,
+  PetType.Light,
+  PetType.Shadow,
+];
+
+export const PET_TYPE_LABELS: Record<PetType, string> = {
+  [PetType.Rock]: 'Rock',
+  [PetType.Nature]: 'Nature',
+  [PetType.Wood]: 'Wood',
+  [PetType.Water]: 'Water',
+  [PetType.Normal]: 'Normal',
+  [PetType.Light]: 'Light',
+  [PetType.Shadow]: 'Shadow',
 };
 
 export function getTypeEffectiveness(
@@ -61,10 +85,10 @@ export function getTypeEffectiveness(
   if (attackType === defenderType) {
     return 1.0;
   }
-  if (advantageMap[attackType] === defenderType) {
+  if (advantageMap[attackType].includes(defenderType)) {
     return TYPE_ADVANTAGE_MULTIPLIER;
   }
-  if (advantageMap[defenderType] === attackType) {
+  if (advantageMap[defenderType].includes(attackType)) {
     return TYPE_DISADVANTAGE_MULTIPLIER;
   }
   return 1.0;

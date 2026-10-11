@@ -1,10 +1,11 @@
 import { ITEMS } from '../data/items';
 import Phaser from 'phaser';
-import { SCREEN_WIDTH, SCREEN_HEIGHT, MAX_TEAM_SIZE } from '../constants';
+import { SCREEN_WIDTH, SCREEN_HEIGHT, MAX_TEAM_SIZE, MAX_PET_NAME_LENGTH, SPIRITS_PER_PET_LEVEL } from '../constants';
 import { GameState } from '../state/GameState';
 import { EVOLUTION_SPIRIT_COST, getEvolutionDef } from '../data/evolutions';
 import { PET_TEMPLATES } from '../data/pets';
 import { MOVES } from '../data/moves';
+import { getPetMoveSlots, canPetLearnMove, getPetMoveAA, getMoveMaxAA, petNeedsFeeding } from '../utils/petMoves';
 import { ItemType } from '../types/item';
 import { IPetInstance, PetType } from '../types/pet';
 import { Panel } from './Panel';
@@ -67,6 +68,10 @@ export class PetBookUI {
   private detailPet: IPetInstance | null = null;
   private detailTeamSlot: number | null = null;
   private detailPickingItem = false;
+  /** TM flow: pick a TM from the bag, then pick which move slot to replace. */
+  private detailPickingTm = false;
+  private detailTmId: string | null = null;
+  private tmPage = 0;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -104,21 +109,28 @@ export class PetBookUI {
     this.storagePage = 0;
     this.detailPet = null;
     this.detailTeamSlot = null;
-    this.detailPickingItem = false;
+    this.resetDetailModes();
     this.rebuildPanel();
+  }
+
+  private resetDetailModes(): void {
+    this.detailPickingItem = false;
+    this.detailPickingTm = false;
+    this.detailTmId = null;
+    this.tmPage = 0;
   }
 
   private openDetail(pet: IPetInstance, teamSlot: number | null): void {
     this.detailPet = pet;
     this.detailTeamSlot = teamSlot;
-    this.detailPickingItem = false;
+    this.resetDetailModes();
     this.rebuildPanel();
   }
 
   private closeDetail(): void {
     this.detailPet = null;
     this.detailTeamSlot = null;
-    this.detailPickingItem = false;
+    this.resetDetailModes();
     this.rebuildPanel();
   }
 
@@ -142,6 +154,15 @@ export class PetBookUI {
     add(this.scene.add.text(left + 100, top + 15, pet.nickname, {
       fontSize: '22px', fontFamily: 'Arial Black', color: '#ffd700',
     }));
+    add(new Button(this.scene, left + 440, top + 27, 'Rename', () => {
+      const input = window.prompt(`Name your ${template?.name ?? 'pet'} (max ${MAX_PET_NAME_LENGTH} characters):`, pet.nickname);
+      if (input === null) return; // cancelled
+      if (GameState.getInstance().renamePet(pet, input)) {
+        this.rebuildPanel();
+      } else {
+        Toast.show(this.scene, 'A pet needs a name!');
+      }
+    }, { width: 80, height: 28, fontSize: '13px', fillColor: 0x2c3e50 }));
     add(this.scene.add.text(left + 100, top + 45, `Level ${pet.level}  ·  ${PET_TYPE_NAMES[type]}`, {
       fontSize: '14px', fontFamily: 'Arial', color: PET_TYPE_COLORS[type],
     }));
@@ -159,21 +180,25 @@ export class PetBookUI {
 
     if (this.detailPickingItem) {
       this.addDetailItemPicker(pet, add);
+    } else if (this.detailPickingTm) {
+      if (this.detailTmId) this.addDetailTmSlotPicker(pet, add);
+      else this.addDetailTmPicker(pet, add);
     } else {
       add(this.scene.add.text(left, top + 115, 'Moves', {
         fontSize: '16px', fontFamily: 'Arial Black', color: '#ffffff',
       }));
       if (template) {
-        for (let i = 0; i < template.moveIds.length; i++) {
-          const move = MOVES[template.moveIds[i]];
-          const unlockLevel = template.moveLevels[i];
+        const slots = getPetMoveSlots(pet);
+        for (let i = 0; i < slots.length; i++) {
+          const move = MOVES[slots[i].id];
+          const unlockLevel = slots[i].level;
           if (!move) continue;
           const unlocked = pet.level >= unlockLevel;
           add(this.scene.add.text(
             left + 10,
             top + 142 + i * 24,
             unlocked
-              ? `${move.name}  —  ${PET_TYPE_NAMES[move.type]}, power ${move.power}`
+              ? `${move.name}  —  ${PET_TYPE_NAMES[move.type]}, power ${move.power}, AA ${getPetMoveAA(pet, move)}/${getMoveMaxAA(move)}`
               : `${move.name}  —  unlocks at Lv ${unlockLevel}`,
             { fontSize: '13px', fontFamily: 'Arial', color: unlocked ? '#e0e0e0' : '#666666' },
           ));
@@ -183,34 +208,166 @@ export class PetBookUI {
 
     // Buttons
     const btnY = cy + 165;
-    const canHeal = pet.currentHp < pet.maxHp;
-    if (!this.detailPickingItem) {
-      const useBtn = new Button(this.scene, cx - 150, btnY, 'Use Item', () => {
+    const canHeal = pet.currentHp < pet.maxHp || petNeedsFeeding(pet);
+    const picking = this.detailPickingItem || this.detailPickingTm;
+    if (!picking) {
+      const playerLevel = GameState.getInstance().getState().level;
+      const canLevel = pet.level < playerLevel;
+      add(new Button(this.scene, cx - 105, btnY - 48, `Level Up to ${pet.level + 1}  (${SPIRITS_PER_PET_LEVEL} spirit)`, () => {
+        const result = GameState.getInstance().levelUpPetWithSpirits(pet);
+        if (result === 'at-player-level') {
+          Toast.show(this.scene, `${pet.nickname} can't pass your level (${playerLevel}).`);
+        } else if (result === 'no-spirits') {
+          Toast.show(this.scene, `Need ${SPIRITS_PER_PET_LEVEL} spirit to level up.`);
+        } else {
+          Toast.show(this.scene, `${pet.nickname} reached level ${pet.level}!`);
+          this.rebuildPanel();
+        }
+      }, { width: 260, height: 32, fontSize: '14px', fillColor: canLevel ? 0x27ae60 : 0x333333 }));
+
+      add(new Button(this.scene, cx - 195, btnY, 'Use Item', () => {
         if (!canHeal) {
-          Toast.show(this.scene, `${pet.nickname} is already at full health.`);
+          Toast.show(this.scene, `${pet.nickname} is at full health with full AA.`);
           return;
         }
         this.detailPickingItem = true;
         this.rebuildPanel();
-      }, { width: 130, height: 36, fontSize: '14px', fillColor: canHeal ? 0x8e44ad : 0x333333 });
-      add(useBtn);
+      }, { width: 115, height: 36, fontSize: '14px', fillColor: canHeal ? 0x8e44ad : 0x333333 }));
+
+      add(new Button(this.scene, cx - 65, btnY, 'Use TM', () => {
+        this.detailPickingTm = true;
+        this.detailTmId = null;
+        this.tmPage = 0;
+        this.rebuildPanel();
+      }, { width: 115, height: 36, fontSize: '14px', fillColor: 0x2980b9 }));
 
       if (this.detailTeamSlot !== null) {
         const slot = this.detailTeamSlot;
-        add(new Button(this.scene, cx, btnY, 'Select to Swap', () => {
+        add(new Button(this.scene, cx + 70, btnY, 'Select to Swap', () => {
           this.selectedTeamSlot = this.selectedTeamSlot === slot ? null : slot;
           this.closeDetail();
-        }, { width: 140, height: 36, fontSize: '13px', fillColor: 0x2c3e50 }));
+        }, { width: 130, height: 36, fontSize: '13px', fillColor: 0x2c3e50 }));
       }
     }
-    add(new Button(this.scene, cx + 150, btnY, this.detailPickingItem ? 'Back' : 'Close', () => {
+    add(new Button(this.scene, cx + 200, btnY, picking ? 'Back' : 'Close', () => {
       if (this.detailPickingItem) {
         this.detailPickingItem = false;
-        this.rebuildPanel();
+      } else if (this.detailPickingTm && this.detailTmId) {
+        this.detailTmId = null;
+      } else if (this.detailPickingTm) {
+        this.detailPickingTm = false;
       } else {
         this.closeDetail();
+        return;
       }
-    }, { width: 110, height: 36, fontSize: '14px', fillColor: 0xc0392b }));
+      this.rebuildPanel();
+    }, { width: 100, height: 36, fontSize: '14px', fillColor: 0xc0392b }));
+  }
+
+  /** Step 1 of Use TM: choose a TM from the bag. */
+  private addDetailTmPicker(
+    pet: IPetInstance,
+    add: <T extends Phaser.GameObjects.GameObject>(o: T) => T,
+  ): void {
+    const gs = GameState.getInstance();
+    const cx = SCREEN_WIDTH / 2;
+    const cy = SCREEN_HEIGHT / 2;
+    const top = cy - 180;
+    const PER_PAGE = 5;
+
+    add(this.scene.add.text(cx - 235, top + 115, 'Use which TM?', {
+      fontSize: '16px', fontFamily: 'Arial Black', color: '#ffffff',
+    }));
+
+    const tms = gs.getState().inventory.filter((slot) => {
+      const item = ITEMS[slot.itemId];
+      return item && item.itemType === ItemType.TM && slot.quantity > 0;
+    });
+
+    if (tms.length === 0) {
+      add(this.scene.add.text(cx, cy, "You have no TMs. Buy them from the shop's TMs tab.", {
+        fontSize: '13px', fontFamily: 'Arial', color: '#aaaaaa', wordWrap: { width: 440 }, align: 'center',
+      }).setOrigin(0.5));
+      return;
+    }
+
+    const pages = Math.ceil(tms.length / PER_PAGE);
+    this.tmPage = Math.min(this.tmPage, pages - 1);
+    tms.slice(this.tmPage * PER_PAGE, (this.tmPage + 1) * PER_PAGE).forEach((slot, i) => {
+      const item = ITEMS[slot.itemId];
+      const move = MOVES[item.teachMoveId ?? ''];
+      if (!move) return;
+      const learnable = canPetLearnMove(pet, move);
+      const known = getPetMoveSlots(pet).some((s) => s.id === move.id);
+      const ok = learnable && !known;
+      const note = known ? 'already known' : learnable ? `power ${move.power}` : `${PET_TYPE_NAMES[move.type]} - cannot learn`;
+      add(new Button(
+        this.scene, cx, top + 155 + i * 36,
+        `${item.name} x${slot.quantity}  (${note})`,
+        () => {
+          if (!ok) {
+            Toast.show(this.scene, known ? `${pet.nickname} already knows ${move.name}.` : `${pet.nickname} cannot learn ${move.name}.`);
+            return;
+          }
+          this.detailTmId = slot.itemId;
+          this.rebuildPanel();
+        },
+        { width: 380, height: 30, fontSize: '14px', fillColor: ok ? 0x2980b9 : 0x333333 },
+      ));
+    });
+
+    if (pages > 1) {
+      const btnY = cy + 165;
+      add(new Button(this.scene, cx - 80, btnY, '<', () => {
+        this.tmPage = (this.tmPage + pages - 1) % pages;
+        this.rebuildPanel();
+      }, { width: 50, height: 36, fontSize: '16px', fillColor: 0x2c3e50 }));
+      add(this.scene.add.text(cx - 15, btnY, `${this.tmPage + 1}/${pages}`, {
+        fontSize: '14px', fontFamily: 'Arial', color: '#ffffff',
+      }).setOrigin(0.5));
+      add(new Button(this.scene, cx + 50, btnY, '>', () => {
+        this.tmPage = (this.tmPage + 1) % pages;
+        this.rebuildPanel();
+      }, { width: 50, height: 36, fontSize: '16px', fillColor: 0x2c3e50 }));
+    }
+  }
+
+  /** Step 2 of Use TM: choose which known move to replace. */
+  private addDetailTmSlotPicker(
+    pet: IPetInstance,
+    add: <T extends Phaser.GameObjects.GameObject>(o: T) => T,
+  ): void {
+    const gs = GameState.getInstance();
+    const cx = SCREEN_WIDTH / 2;
+    const top = SCREEN_HEIGHT / 2 - 180;
+    const tmId = this.detailTmId!;
+    const newMove = MOVES[ITEMS[tmId]?.teachMoveId ?? ''];
+
+    add(this.scene.add.text(cx - 235, top + 115, `Replace which move with ${newMove?.name ?? '?'}?`, {
+      fontSize: '16px', fontFamily: 'Arial Black', color: '#ffffff',
+    }));
+
+    getPetMoveSlots(pet).forEach((slot, i) => {
+      const move = MOVES[slot.id];
+      if (!move) return;
+      const locked = pet.level < slot.level;
+      add(new Button(
+        this.scene, cx, top + 155 + i * 40,
+        `${move.name}  -  ${PET_TYPE_NAMES[move.type]}, power ${move.power}${locked ? `  (unlocks Lv ${slot.level})` : ''}`,
+        () => {
+          const err = gs.teachMove(pet, tmId, i);
+          if (err) {
+            Toast.show(this.scene, err);
+          } else {
+            Toast.show(this.scene, `${pet.nickname} forgot ${move.name} and learned ${newMove.name}!`);
+            this.detailPickingTm = false;
+            this.detailTmId = null;
+          }
+          this.rebuildPanel();
+        },
+        { width: 380, height: 32, fontSize: '14px', fillColor: 0xc0392b },
+      ));
+    });
   }
 
   private addDetailItemPicker(
@@ -243,15 +400,16 @@ export class PetBookUI {
       const item = ITEMS[slot.itemId];
       add(new Button(
         this.scene, cx, top + 160 + i * 42,
-        `${item.name} x${slot.quantity}  (+${GameState.healAmountOf(slot.itemId)} HP)`,
+        `${item.name} x${slot.quantity}  (${GameState.healsFully(slot.itemId) ? 'full heal' : `+${GameState.healAmountOf(slot.itemId)} HP`}${item.refillsAA ? ' + AA' : ''})`,
         () => {
-          const healed = gs.healPetWithItem(pet, slot.itemId);
-          if (healed <= 0) {
-            Toast.show(this.scene, `${pet.nickname} is already at full health.`);
+          const { healed, aaRefilled } = gs.healPetWithItem(pet, slot.itemId);
+          if (healed <= 0 && !aaRefilled) {
+            Toast.show(this.scene, `${pet.nickname} doesn't need that right now.`);
           } else {
-            Toast.show(this.scene, `${pet.nickname} healed for ${healed} HP!`);
+            const parts = [healed > 0 ? `healed for ${healed} HP` : '', aaRefilled ? 'AA refilled' : ''];
+            Toast.show(this.scene, `${pet.nickname} ${parts.filter(Boolean).join(' and ')}!`);
           }
-          if (pet.currentHp >= pet.maxHp) this.detailPickingItem = false;
+          if (pet.currentHp >= pet.maxHp && !petNeedsFeeding(pet)) this.detailPickingItem = false;
           this.rebuildPanel();
         },
         { width: 380, height: 34, fontSize: '14px', fillColor: 0x27ae60 },

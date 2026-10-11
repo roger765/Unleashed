@@ -7,6 +7,7 @@ import { GameState } from '../state/GameState';
 import { EventBus } from '../state/EventBus';
 import { isTouchDevice } from '../utils/mobile';
 import { PET_TEMPLATES } from '../data/pets';
+import { rollWildTemplate } from '../utils/spawn';
 import { IPetInstance } from '../types/pet';
 import { createPetCombatant, buildPlayerTeamFromState } from '../battle/Combatant';
 import { BattleConfig } from '../battle/BattleManager';
@@ -86,7 +87,7 @@ export class CaveScene extends Phaser.Scene {
     const rockPets = ['gravel', 'cobble', 'slate', 'marble', 'obsidian'];
     for (let i = 0; i < 6; i++) {
       const tid = rockPets[randomInt(0, rockPets.length - 1)];
-      const template = PET_TEMPLATES[tid];
+      const template = rollWildTemplate(PET_TEMPLATES[tid]);
       const px = randomInt(3, MAP_W - 4) * TILE_SIZE;
       const py = randomInt(3, MAP_H - 4) * TILE_SIZE;
       const level = randomInt(5, 14);

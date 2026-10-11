@@ -4,6 +4,8 @@ import { executeMove } from './MoveExecutor';
 import { getAIDecision, AIDecision } from './BattleAI';
 import { xpForDefeating } from '../data/xp-table';
 import { randomInt } from '../utils/math';
+import { STRUGGLE } from '../data/moves';
+import { getPetMoveAA, spendPetAA } from '../utils/petMoves';
 
 /**
  * Spirits earned from one wild pet — scales with level and combat stats (stronger = more).
@@ -58,10 +60,28 @@ export class BattleManager {
     return true;
   }
 
+  /** Moves the combatant can pick from: its own, or just Struggle once every move is out of AA. */
+  getMoveList(c: IBattleCombatant): IMove[] {
+    if (!c.limitedAA || !c.pet) return c.moves;
+    const pet = c.pet;
+    return c.moves.some((m) => getPetMoveAA(pet, m) > 0) ? c.moves : [...c.moves, STRUGGLE];
+  }
+
+  /** Uses left of a move, or null if the combatant's moves are unlimited. */
+  getMoveAA(c: IBattleCombatant, move: IMove): number | null {
+    if (!c.limitedAA || !c.pet || move.id === STRUGGLE.id) return null;
+    return getPetMoveAA(c.pet, move);
+  }
+
+  canUseMove(c: IBattleCombatant, move: IMove): boolean {
+    const aa = this.getMoveAA(c, move);
+    return aa === null || aa > 0;
+  }
+
   selectMove(moveIndex: number): BattlePhase {
     const attacker = this.config.playerTeam[this.selectedAttackerIndex];
     if (!attacker) return this.phase;
-    const move = attacker.moves[moveIndex];
+    const move = this.getMoveList(attacker)[moveIndex];
     if (!move) return this.phase;
     this.selectedMoveIndex = moveIndex;
 
@@ -84,6 +104,12 @@ export class BattleManager {
 
     this.turnLog.push(`${attacker.name} used ${move.name}!`);
     const results = executeMove(move, attacker, targets);
+
+    // A used attack costs one AA even if it misses
+    if (attacker.limitedAA && attacker.pet && move.id !== STRUGGLE.id) {
+      spendPetAA(attacker.pet, move);
+      if (getPetMoveAA(attacker.pet, move) === 0) this.turnLog.push(`${move.name} is out of AA!`);
+    }
 
     for (const r of results) {
       if (r.missed) {

@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from '../constants';
 import { GameState } from '../state/GameState';
-import { areAllOverworldZoneBossesDefeated } from '../battle/bossUtils';
+import { areAllOverworldZoneBossesDefeated, areAllBasementTrainersDefeated, areAllCastleMastersDefeated } from '../battle/bossUtils';
 import { Panel } from './Panel';
 import { Button } from './Button';
 
@@ -55,6 +55,8 @@ export class MapUI {
 
     // Map nodes
     const prismUnlocked = areAllOverworldZoneBossesDefeated();
+    const basementUnlocked = areAllCastleMastersDefeated();
+    const portalsOpen = areAllBasementTrainersDefeated();
     const zones = [
       { name: 'Starting Town', x: cx - 220, y: cy, color: 0xffd700, scene: 'TownScene' },
       {
@@ -70,6 +72,22 @@ export class MapUI {
       { name: 'Aqua Isles', x: cx + 90, y: cy + 100, color: 0x29b6f6, scene: 'AquaIslesScene' },
       { name: 'Rocky Cave', x: cx + 20, y: cy - 78, color: 0x607d8b, scene: 'CaveScene' },
       { name: 'Forest Pond', x: cx + 20, y: cy + 78, color: 0x2196f3, scene: 'PondScene' },
+      // Castle basement and the Light/Shadow zones (appended: connection lines use fixed indices)
+      {
+        name: basementUnlocked ? 'Castle Basement' : 'Castle Basement (sealed)',
+        x: cx + 200, y: cy, color: basementUnlocked ? 0xb39ddb : 0x666666, scene: 'CastleBasementScene',
+        locked: !basementUnlocked,
+      },
+      {
+        name: portalsOpen ? 'Sunlit Meadows' : 'Sunlit Meadows (locked)',
+        x: cx + 200, y: cy - 100, color: portalsOpen ? 0xfff176 : 0x666666, scene: 'SunlitMeadowsScene',
+        locked: !portalsOpen,
+      },
+      {
+        name: portalsOpen ? 'Gloomhollow' : 'Gloomhollow (locked)',
+        x: cx + 200, y: cy + 100, color: portalsOpen ? 0x9575cd : 0x666666, scene: 'GloomhollowScene',
+        locked: !portalsOpen,
+      },
     ];
 
     // Draw connections (Deep Forest is the first wild zone east of town)
@@ -82,11 +100,13 @@ export class MapUI {
     g.lineBetween(zones[3].x, zones[3].y, zones[5].x, zones[5].y);
     g.lineBetween(zones[2].x, zones[2].y, zones[6].x, zones[6].y);
     g.lineBetween(zones[2].x, zones[2].y, zones[7].x, zones[7].y);
+    g.lineBetween(zones[8].x, zones[8].y, zones[9].x, zones[9].y);
+    g.lineBetween(zones[8].x, zones[8].y, zones[10].x, zones[10].y);
     this.container.add(g);
 
     for (const zone of zones) {
       const isCurrent = currentScene === zone.scene;
-      const isLockedPrism = zone.scene === 'ConvergenceWildsScene' && !prismUnlocked;
+      const isLockedPrism = (zone.scene === 'ConvergenceWildsScene' && !prismUnlocked) || (zone as { locked?: boolean }).locked === true;
       const circle = this.scene.add.graphics();
       const fillAlpha = isCurrent ? 1 : isLockedPrism ? 0.35 : 0.5;
       circle.fillStyle(zone.color, fillAlpha);

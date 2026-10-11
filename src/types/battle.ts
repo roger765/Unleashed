@@ -14,6 +14,8 @@ export interface IBattleCombatant {
   moves: IMove[];
   statusEffects: IStatusEffect[];
   resistances: Partial<Record<PetType, number>>;
+  /** True for the player's pets: their moves are limited by Attack Allowance (AA). */
+  limitedAA?: boolean;
 }
 
 export interface IStatusEffect {

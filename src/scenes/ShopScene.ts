@@ -2,17 +2,19 @@ import Phaser from 'phaser';
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from '../constants';
 import { GameState } from '../state/GameState';
 import { ITEMS } from '../data/items';
-import { SHOP_ITEMS } from '../data/shop';
+import { SHOP_ITEMS, TM_CATEGORIES, COINS_PER_SPIRIT } from '../data/shop';
 import { Button } from '../ui/Button';
 import { Toast } from '../ui/Toast';
 import { AudioManager } from '../audio/AudioManager';
 
-type TabKey = 'Weapons' | 'Armour' | 'Items';
+type TabKey = 'Weapons' | 'Armour' | 'Items' | 'Charms' | 'TMs';
 
 const TAB_CATEGORIES: Record<TabKey, string[]> = {
   Weapons: ['Weapons'],
   Armour: ['Armor'],
   Items: ['Healing', 'Food'],
+  Charms: ['Charms', 'Lures', 'Stones'],
+  TMs: TM_CATEGORIES,
 };
 
 const TAB_COLOR_ACTIVE = 0xb8860b;
@@ -42,17 +44,33 @@ export class ShopScene extends Phaser.Scene {
       fontSize: '18px', fontFamily: 'Arial', color: '#ffd700',
     }).setOrigin(0.5);
 
+    // ── Spirit exchange ──────────────────────────────────────────
+    const spiritsText = this.add.text(cx + 150, 155, `Spirits: ${gs.getState().spirits}`, {
+      fontSize: '18px', fontFamily: 'Arial', color: '#c9a0ff',
+    }).setOrigin(0, 0.5);
+    new Button(this, cx + 400, 155, `Sell 1 Spirit (+${COINS_PER_SPIRIT})`, () => {
+      if (gs.exchangeSpiritsForCoins(1, COINS_PER_SPIRIT)) {
+        coinsText.setText(`Coins: ${gs.getState().coins}`);
+        spiritsText.setText(`Spirits: ${gs.getState().spirits}`);
+        Toast.show(this, `Sold 1 spirit for ${COINS_PER_SPIRIT} coins!`);
+      } else {
+        Toast.show(this, 'You have no spirits to sell!');
+      }
+    }, { width: 200, height: 30, fontSize: '13px', fillColor: 0x8e44ad });
+
     // ── Tab buttons ──────────────────────────────────────────────
-    const tabs: TabKey[] = ['Weapons', 'Armour', 'Items'];
+    const tabs: TabKey[] = ['Weapons', 'Armour', 'Items', 'Charms', 'TMs'];
     const tabButtons: Partial<Record<TabKey, Button>> = {};
-    const tabSpacing = 180;
+    const tabSpacing = 170;
     const tabY = 200;
 
     // ── Tab content containers ───────────────────────────────────
     const tabContainers: Partial<Record<TabKey, Phaser.GameObjects.Container>> = {};
 
     for (const tab of tabs) {
-      tabContainers[tab] = this.buildTabContent(tab, gs, coinsText);
+      tabContainers[tab] = tab === 'TMs'
+        ? this.buildTmTab(gs, coinsText)
+        : this.buildTabContent(TAB_CATEGORIES[tab], gs, coinsText);
       tabContainers[tab]!.setVisible(false);
     }
 
@@ -64,7 +82,7 @@ export class ShopScene extends Phaser.Scene {
     };
 
     tabs.forEach((tab, i) => {
-      const x = cx + (i - 1) * tabSpacing;
+      const x = cx + (i - (tabs.length - 1) / 2) * tabSpacing;
       tabButtons[tab] = new Button(this, x, tabY, tab, () => showTab(tab), {
         width: 160, height: 38, fontSize: '16px', fillColor: TAB_COLOR_INACTIVE,
       });
@@ -79,24 +97,57 @@ export class ShopScene extends Phaser.Scene {
     }, { width: 200, height: 45, fontSize: '16px' });
   }
 
+  /** TMs tab: one sub-tab per move type, so 37 rows never share a screen. */
+  private buildTmTab(gs: GameState, coinsText: Phaser.GameObjects.Text): Phaser.GameObjects.Container {
+    const container = this.add.container(0, 0);
+    const cx = SCREEN_WIDTH / 2;
+    const subContainers = TM_CATEGORIES.map((cat) => {
+      const c = this.buildTabContent([cat], gs, coinsText, 285, false);
+      container.add(c);
+      return c;
+    });
+    const subButtons: Button[] = [];
+    const show = (idx: number) => {
+      subContainers.forEach((c, i) => c.setVisible(i === idx));
+      subButtons.forEach((b, i) => b.setColor(i === idx ? TAB_COLOR_ACTIVE : TAB_COLOR_INACTIVE));
+    };
+    const spacing = 110;
+    TM_CATEGORIES.forEach((cat, i) => {
+      const x = cx + (i - (TM_CATEGORIES.length - 1) / 2) * spacing;
+      const b = new Button(this, x, 250, cat.replace('TM ', ''), () => show(i), {
+        width: 100, height: 28, fontSize: '13px', fillColor: TAB_COLOR_INACTIVE,
+      });
+      subButtons.push(b);
+      container.add(b);
+    });
+    show(0);
+    return container;
+  }
+
   private buildTabContent(
-    tab: TabKey,
+    categories: string[],
     gs: GameState,
     coinsText: Phaser.GameObjects.Text,
+    startY = 240,
+    showCategoryHeaders = true,
   ): Phaser.GameObjects.Container {
     const container = this.add.container(0, 0);
     const cx = SCREEN_WIDTH / 2;
-    const categories = TAB_CATEGORIES[tab];
     const entries = SHOP_ITEMS.filter(e => categories.includes(e.category));
 
-    let yOff = 240;
+    let yOff = startY;
     let lastCategory = '';
+
+    // Shrink row pitch for long lists so they stay clear of the Back button.
+    const categoryCount = new Set(entries.map(e => e.category)).size;
+    const headerCount = showCategoryHeaders ? categoryCount : 0;
+    const rowPitch = Math.min(36, Math.floor((380 - (startY - 240) - headerCount * 26) / Math.max(1, entries.length)));
 
     for (const shopEntry of entries) {
       const item = ITEMS[shopEntry.itemId];
       if (!item) continue;
 
-      if (shopEntry.category !== lastCategory) {
+      if (showCategoryHeaders && shopEntry.category !== lastCategory) {
         lastCategory = shopEntry.category;
         const catLabel = this.add.text(cx - 300, yOff, shopEntry.category, {
           fontSize: '15px', fontFamily: 'Arial Black', color: '#3498DB',
@@ -127,7 +178,7 @@ export class ShopScene extends Phaser.Scene {
       }, { width: 70, height: 28, fontSize: '12px', fillColor: 0x27ae60 });
       container.add(buyBtn);
 
-      yOff += 36;
+      yOff += rowPitch;
     }
 
     return container;

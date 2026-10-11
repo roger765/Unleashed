@@ -3,7 +3,7 @@ import { SCREEN_WIDTH, SCREEN_HEIGHT } from '../constants';
 import { IBattleCombatant, IDamageResult } from '../types/battle';
 import { AttackCategory } from '../types/move';
 import { BattleManager, BattlePhase, BattleConfig } from '../battle/BattleManager';
-import { playPetAttackAnimation } from '../battle/petAttackAnimations';
+import { playMoveAnimation } from '../battle/petAttackAnimations';
 import { getCaptureInfo, performCapture, CaptureInfo } from '../battle/CaptureManager';
 import { GameState } from '../state/GameState';
 import { Button } from '../ui/Button';
@@ -19,6 +19,7 @@ import { ITEMS } from '../data/items';
 import { ALL_REGISTERED_BOSS_IDS } from '../data/bosses';
 import { ItemType } from '../types/item';
 import { isTouchDevice } from '../utils/mobile';
+import { getMoveMaxAA, petNeedsFeeding, refillPetAA } from '../utils/petMoves';
 
 const TYPE_COLORS: Record<number, number> = {
   0: 0x78909c, // Rock
@@ -255,12 +256,16 @@ export class BattleScene extends Phaser.Scene {
       return '[C]';
     };
 
-    for (let i = 0; i < attacker.moves.length; i++) {
-      const move = attacker.moves[i];
-      const color = TYPE_COLORS[move.type] ?? 0x9e9e9e;
+    const moveList = this.manager.getMoveList(attacker);
+    for (let i = 0; i < moveList.length; i++) {
+      const move = moveList[i];
+      const aa = this.manager.getMoveAA(attacker, move);
+      const spent = aa === 0;
+      const color = spent ? 0x333333 : (TYPE_COLORS[move.type] ?? 0x9e9e9e);
+      const aaLabel = aa === null ? '' : `  AA:${aa}/${getMoveMaxAA(move)}`;
       const btn = new Button(
         this, px, py + 35 + i * this.btnStep,
-        `${i + 1}. ${move.name} ${categoryLabel(move.category)} Pow:${move.power}`,
+        `${i + 1}. ${move.name} ${categoryLabel(move.category)} Pow:${move.power}${aaLabel}`,
         () => this.onSelectMove(i),
         { width: 350, height: this.btnH, fontSize: '14px', fillColor: color },
       );
@@ -276,7 +281,7 @@ export class BattleScene extends Phaser.Scene {
     });
     if (usable.length > 0) {
       const itemBtn = new Button(
-        this, px, py + 35 + attacker.moves.length * this.btnStep,
+        this, px, py + 35 + moveList.length * this.btnStep,
         'Items',
         () => this.showItemSelect(),
         { width: 350, height: this.btnH, fontSize: '14px', fillColor: 0x8e44ad },
@@ -380,10 +385,17 @@ export class BattleScene extends Phaser.Scene {
 
   private onSelectMove(moveIndex: number): void {
     const attacker = this.manager.config.playerTeam[this.manager.selectedAttackerIndex];
-    if (!attacker || moveIndex >= attacker.moves.length) return;
+    if (!attacker) return;
+    const moveList = this.manager.getMoveList(attacker);
+    if (moveIndex >= moveList.length) return;
+
+    const move = moveList[moveIndex];
+    if (!this.manager.canUseMove(attacker, move)) {
+      Toast.show(this, `${move.name} is out of AA! Feed ${attacker.name} Pet Food.`);
+      return;
+    }
 
     const nextPhase = this.manager.selectMove(moveIndex);
-    const move = attacker.moves[moveIndex];
 
     if (nextPhase === BattlePhase.SelectTarget) {
       this.showSelectTarget();
@@ -418,7 +430,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     const attacker = this.manager.config.playerTeam[this.manager.selectedAttackerIndex];
-    const move = attacker.moves[this.manager.selectedMoveIndex];
+    const move = this.manager.getMoveList(attacker)[this.manager.selectedMoveIndex];
     const target = this.manager.config.enemyTeam[targetIndex];
 
     this.manager.selectTarget(targetIndex);
@@ -447,11 +459,12 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    playPetAttackAnimation(
+    playMoveAnimation(
       this,
       attackerEntry.sprite,
       attackerEntry.combatant,
-      { targetX: aim.x, targetY: aim.y, moveCategory: move.category },
+      move,
+      aim,
       afterAttackAnim,
     );
   }
@@ -486,11 +499,12 @@ export class BattleScene extends Phaser.Scene {
         return;
       }
 
-      playPetAttackAnimation(
+      playMoveAnimation(
         this,
         enemyEntry.sprite,
         enemyEntry.combatant,
-        { targetX: aim.x, targetY: aim.y, moveCategory: move.category },
+        move,
+        aim,
         afterAttackAnim,
       );
     });
@@ -719,16 +733,14 @@ export class BattleScene extends Phaser.Scene {
     }
 
     const target = this.manager.config.playerTeam[targetIndex];
-    let healAmount = 0;
-
-    if (item.itemType === ItemType.Food && item.healAmount) {
-      healAmount = item.healAmount;
-    } else if (item.itemType === ItemType.Potion && item.healPerTurn && item.healDuration) {
-      healAmount = item.healPerTurn * item.healDuration;
-    }
-
     const wasFainted = target.currentHp <= 0;
-    target.currentHp = Math.min(target.currentHp + healAmount, target.maxHp);
+    const hpBefore = target.currentHp;
+    target.currentHp = Math.min(target.currentHp + GameState.healAmountFor(itemId, target.maxHp), target.maxHp);
+    const healAmount = target.currentHp - hpBefore;
+
+    // Pet Food also refills the pet's attack allowance (the pet's own AA, not the combatant's)
+    const refilled = !!item.refillsAA && !!target.limitedAA && !!target.pet && petNeedsFeeding(target.pet);
+    if (refilled && target.pet) refillPetAA(target.pet);
 
     // Bring a revived pet back onto the battlefield
     if (wasFainted && target.currentHp > 0) {
@@ -743,10 +755,10 @@ export class BattleScene extends Phaser.Scene {
     this.updateAllHealthBars();
     this.clearActionContent();
 
-    this.manager.turnLog = [`Used ${item.name} on ${target.name}! +${healAmount} HP`];
+    this.manager.turnLog = [`Used ${item.name} on ${target.name}! +${healAmount} HP${refilled ? ', AA refilled' : ''}`];
     this.showLog(this.manager.turnLog);
 
-    Toast.show(this, `${target.name} healed for ${healAmount} HP!`);
+    Toast.show(this, `${target.name} healed for ${healAmount} HP${refilled ? ' and AA refilled' : ''}!`);
 
     // Using an item costs the turn — enemy acts next
     const outcome = this.manager.checkBattleEnd();

@@ -1,10 +1,12 @@
 import { IPlayerAppearance, IPlayerState } from '../types/player';
 import { ArmorSlot, ItemType } from '../types/item';
 import { ITEMS } from '../data/items';
+import { MOVES } from '../data/moves';
+import { canPetLearnMove, getPetMoveSlots, petNeedsFeeding, refillPetAA } from '../utils/petMoves';
 import { PetType } from '../types/pet';
 import { IPetInstance } from '../types/pet';
 import { IBattleCombatant } from '../types/battle';
-import { MAX_TEAM_SIZE, LEVEL_CAP } from '../constants';
+import { MAX_TEAM_SIZE, LEVEL_CAP, MAX_PET_NAME_LENGTH, SPIRITS_PER_PET_LEVEL } from '../constants';
 import { XP_TABLE } from '../data/xp-table';
 import { PET_TEMPLATES } from '../data/pets';
 import { EVOLUTION_SPIRIT_COST, getEvolutionDef } from '../data/evolutions';
@@ -124,6 +126,22 @@ export class GameState {
     if (this.state.spirits < amount) return false;
     this.state.spirits -= amount;
     EventBus.emit('spirits-changed', this.state.spirits);
+    this.schedulePersist();
+    return true;
+  }
+
+  /** Trade spirits for coins. Returns false (and changes nothing) if the player lacks the spirits. */
+  exchangeSpiritsForCoins(spirits: number, coinsPerSpirit: number): boolean {
+    if (!this.removeSpirits(spirits)) return false;
+    this.addCoins(spirits * coinsPerSpirit);
+    return true;
+  }
+
+  /** Set a pet's nickname (trimmed, capped at MAX_PET_NAME_LENGTH). Returns false if the result is empty. */
+  renamePet(pet: IPetInstance, name: string): boolean {
+    const clean = name.trim().slice(0, MAX_PET_NAME_LENGTH);
+    if (!clean) return false;
+    pet.nickname = clean;
     this.schedulePersist();
     return true;
   }
@@ -340,7 +358,17 @@ export class GameState {
 
   // ---- Healing items ----
 
-  /** Total HP an item restores, or 0 if it isn't a healing item. */
+  /** True if the item restores a pet to full HP (its fixed heal amount is then irrelevant). */
+  static healsFully(itemId: string): boolean {
+    return ITEMS[itemId]?.healsFully === true;
+  }
+
+  /** HP an item restores to a pet with the given max HP, or 0 if it isn't a healing item. */
+  static healAmountFor(itemId: string, maxHp: number): number {
+    return GameState.healsFully(itemId) ? maxHp : GameState.healAmountOf(itemId);
+  }
+
+  /** Fixed HP an item restores (0 for non-healing items and for full-heal items — see healAmountFor). */
   static healAmountOf(itemId: string): number {
     const item = ITEMS[itemId];
     if (!item) return 0;
@@ -351,17 +379,45 @@ export class GameState {
 
   /**
    * Use a healing item on a pet outside battle (also revives a fainted pet).
-   * Returns the HP restored; 0 means nothing happened and no item was consumed.
+   * Returns the HP restored and whether AA was refilled; if neither happened, no item was consumed.
    */
-  healPetWithItem(pet: IPetInstance, itemId: string): number {
-    const amount = GameState.healAmountOf(itemId);
-    if (amount <= 0 || pet.currentHp >= pet.maxHp) return 0;
-    if (!this.removeItem(itemId, 1)) return 0;
+  healPetWithItem(pet: IPetInstance, itemId: string): { healed: number; aaRefilled: boolean } {
+    const none = { healed: 0, aaRefilled: false };
+    const amount = GameState.healAmountFor(itemId, pet.maxHp);
+    const canHeal = amount > 0 && pet.currentHp < pet.maxHp;
+    const canRefill = ITEMS[itemId]?.refillsAA === true && petNeedsFeeding(pet);
+    if (!canHeal && !canRefill) return none;
+    if (!this.removeItem(itemId, 1)) return none;
     const before = pet.currentHp;
-    pet.currentHp = Math.min(pet.maxHp, before + amount);
+    if (canHeal) pet.currentHp = Math.min(pet.maxHp, before + amount);
+    if (canRefill) refillPetAA(pet);
     EventBus.emit('team-changed', this.state.team);
     this.schedulePersist();
-    return pet.currentHp - before;
+    return { healed: pet.currentHp - before, aaRefilled: canRefill };
+  }
+
+  // ---- TMs ----
+
+  /**
+   * Teach a pet the move from a TM, replacing the move in `slotIndex`. Consumes the TM.
+   * Returns an error message, or null on success.
+   */
+  teachMove(pet: IPetInstance, tmItemId: string, slotIndex: number): string | null {
+    const moveId = ITEMS[tmItemId]?.teachMoveId;
+    const move = moveId ? MOVES[moveId] : undefined;
+    if (!move) return 'That is not a TM.';
+    if (!canPetLearnMove(pet, move)) return `${pet.nickname} cannot learn ${move.name}.`;
+    const slots = getPetMoveSlots(pet).map((s) => ({ ...s }));
+    if (slotIndex < 0 || slotIndex >= slots.length) return 'Pick a move to replace.';
+    if (slots.some((s) => s.id === move.id)) return `${pet.nickname} already knows ${move.name}.`;
+    if (!this.removeItem(tmItemId, 1)) return 'You do not have that TM.';
+    const replacedId = slots[slotIndex].id;
+    slots[slotIndex] = { id: move.id, level: 1 };
+    pet.moves = slots;
+    if (pet.aa) delete pet.aa[replacedId]; // the new move starts at full AA
+    EventBus.emit('team-changed', this.state.team);
+    this.schedulePersist();
+    return null;
   }
 
   // ---- Battle HP persistence ----
@@ -410,6 +466,22 @@ export class GameState {
 
     this.schedulePersist();
     return levelled;
+  }
+
+  /**
+   * Spend spirits to raise a pet (team or storage) by one level, never above the player's level.
+   * XP is snapped to the new level's threshold so later XP gains stay consistent.
+   */
+  levelUpPetWithSpirits(pet: IPetInstance): 'ok' | 'at-player-level' | 'no-spirits' {
+    if (pet.level >= Math.min(this.state.level, LEVEL_CAP)) return 'at-player-level';
+    if (!this.removeSpirits(SPIRITS_PER_PET_LEVEL)) return 'no-spirits';
+
+    pet.level++;
+    pet.xp = Math.max(pet.xp, XP_TABLE[pet.level]);
+    recalcPetStats(pet); // keeps existing damage; no free heal
+    EventBus.emit('team-changed', this.state.team);
+    this.schedulePersist();
+    return 'ok';
   }
 
   /**

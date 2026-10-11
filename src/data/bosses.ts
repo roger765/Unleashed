@@ -197,6 +197,92 @@ export const BOSSES: Record<string, IBossDefinition> = {
     specialMoveIds: ['tidal-crash', 'aqua-burst'],
     coinsReward: 450,
   },
+
+  // ── Castle basement trainers ──────────────────────────────────────
+  'basement-1': {
+    id: 'basement-1',
+    name: 'Warden of the Four',
+    level: 38,
+    team: [
+      { petTemplateId: 'obsidian', level: 38 },
+      { petTemplateId: 'flora', level: 38 },
+      { petTemplateId: 'ironwood', level: 37 },
+      { petTemplateId: 'tsunami', level: 37 },
+    ],
+    specialMoveIds: ['earthquake', 'forest-fury', 'tidal-crash'],
+    coinsReward: 600,
+  },
+  'basement-2': {
+    id: 'basement-2',
+    name: 'Lumina the Radiant',
+    level: 41,
+    team: [
+      { petTemplateId: 'aurelion', level: 41 },
+      { petTemplateId: 'solstice', level: 40 },
+      { petTemplateId: 'luminar', level: 39 },
+      { petTemplateId: 'halo', level: 38 },
+    ],
+    specialMoveIds: ['holy-nova', 'sunburst'],
+    coinsReward: 700,
+  },
+  'basement-3': {
+    id: 'basement-3',
+    name: 'Umbra the Veiled',
+    level: 42,
+    team: [
+      { petTemplateId: 'eclipsor', level: 42 },
+      { petTemplateId: 'umbraith', level: 40 },
+      { petTemplateId: 'nightfall', level: 39 },
+      { petTemplateId: 'murkfang', level: 38 },
+    ],
+    specialMoveIds: ['void-crush', 'eclipse'],
+    coinsReward: 800,
+  },
+
+  // ── Light & Shadow zone bosses ────────────────────────────────────
+  'sunlit-sovereign': {
+    id: 'sunlit-sovereign',
+    name: 'Sunlit Sovereign',
+    level: 45,
+    team: [
+      { petTemplateId: 'aurelion', level: 45 },
+      { petTemplateId: 'solstice', level: 44 },
+      { petTemplateId: 'luminar', level: 43 },
+      { petTemplateId: 'prismoth', level: 42 },
+    ],
+    specialMoveIds: ['holy-nova', 'sunburst'],
+    coinsReward: 900,
+  },
+  'gloom-sovereign': {
+    id: 'gloom-sovereign',
+    name: 'Gloom Sovereign',
+    level: 45,
+    team: [
+      { petTemplateId: 'eclipsor', level: 45 },
+      { petTemplateId: 'nightfall', level: 44 },
+      { petTemplateId: 'umbraith', level: 43 },
+      { petTemplateId: 'murkfang', level: 42 },
+    ],
+    specialMoveIds: ['void-crush', 'eclipse'],
+    coinsReward: 900,
+  },
+
+  // ── Eclipse Sanctum final boss ────────────────────────────────────
+  'twilight-sovereign': {
+    id: 'twilight-sovereign',
+    name: 'Twilight Sovereign',
+    level: 50,
+    team: [
+      { petTemplateId: 'aurelion', level: 50 },
+      { petTemplateId: 'eclipsor', level: 50 },
+      { petTemplateId: 'obsidian', level: 48 },
+      { petTemplateId: 'ironwood', level: 48 },
+      { petTemplateId: 'flora', level: 48 },
+      { petTemplateId: 'tsunami', level: 48 },
+    ],
+    specialMoveIds: ['holy-nova', 'void-crush', 'eclipse'],
+    coinsReward: 2000,
+  },
 };
 
 /** All boss ids that count toward "champion" / defeat tracking in battle results. */
@@ -216,6 +302,12 @@ export const ALL_REGISTERED_BOSS_IDS: string[] = [
   'castle-guardian-boots',
   'castle-guardian-chest',
   'castle-guardian-helmet',
+  'basement-1',
+  'basement-2',
+  'basement-3',
+  'sunlit-sovereign',
+  'gloom-sovereign',
+  'twilight-sovereign',
 ];
 
 /** Overworld zone guardians only (excludes Boss Tower). Used for Prism Wilds unlock. */
@@ -227,3 +319,16 @@ export const OVERWORLD_ZONE_BOSS_IDS: string[] = [
   'deeprock',
   'maelstrom',
 ];
+
+/** The three Castle of Masters guardians. Defeating all of them opens the basement. */
+export const CASTLE_MASTER_BOSS_IDS: string[] = [
+  'castle-guardian-boots',
+  'castle-guardian-chest',
+  'castle-guardian-helmet',
+];
+
+/** Basement trainers, fought in order. Defeating all three opens the portals. */
+export const BASEMENT_BOSS_IDS: string[] = ['basement-1', 'basement-2', 'basement-3'];
+
+/** Zone bosses of the Light and Shadow zones. Each grants half of the Eclipse Sanctum key. */
+export const LIGHT_SHADOW_ZONE_BOSS_IDS: string[] = ['sunlit-sovereign', 'gloom-sovereign'];

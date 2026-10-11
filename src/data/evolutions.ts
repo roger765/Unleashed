@@ -19,6 +19,10 @@ export const PET_EVOLUTION: Record<string, { into: string; minLevel: number }> =
   bark: { into: 'bulwark', minLevel: 15 },
   wave: { into: 'breaker', minLevel: 15 },
   puddle: { into: 'depthling', minLevel: 15 },
+  glimmer: { into: 'luminar', minLevel: 15 },
+  dawnling: { into: 'solstice', minLevel: 15 },
+  gloam: { into: 'umbraith', minLevel: 15 },
+  dusklet: { into: 'nightfall', minLevel: 15 },
   // Uncommons → tier 1 (Lv 20)
   slate: { into: 'razorslate', minLevel: 20 },
   marble: { into: 'marblemarch', minLevel: 20 },

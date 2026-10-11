@@ -10,6 +10,7 @@ import { GameState } from '../state/GameState';
 import { EventBus } from '../state/EventBus';
 import { isTouchDevice } from '../utils/mobile';
 import { PET_TEMPLATES } from '../data/pets';
+import { rollWildTemplate } from '../utils/spawn';
 import { IPetInstance, PetType } from '../types/pet';
 import { createPetCombatant, buildPlayerTeamFromState } from '../battle/Combatant';
 import { BattleConfig } from '../battle/BattleManager';
@@ -172,7 +173,7 @@ export class ForestScene extends Phaser.Scene {
 
     for (let i = 0; i < 10; i++) {
       const tid = forestPets[randomInt(0, forestPets.length - 1)];
-      const template = PET_TEMPLATES[tid];
+      const template = rollWildTemplate(PET_TEMPLATES[tid]);
       const px = randomInt(5, MAP_W - 10) * TILE_SIZE;
       const py = randomInt(5, MAP_H - 10) * TILE_SIZE;
       const level = randomInt(3, 10);

@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { PET_TEMPLATES } from '../data/pets';
 import { IBattleCombatant } from '../types/battle';
-import { AttackCategory } from '../types/move';
+import { AttackCategory, IMove } from '../types/move';
+import { getMoveFx, prepareMoveFx, TYPE_FX_COLOR } from '../fx/moveEffects';
 
 /** Per-pet numeric recipe; each pet has a unique tuple so motion reads differently. */
 export interface PetAttackRecipe {
@@ -105,6 +106,22 @@ const PET_ATTACK_RECIPES: Record<string, PetAttackRecipe> = {
   riptide: R(0.92, 7, -14, 0.09, 12, 0.15, 268),
   deluge: R(0.99, 6, 15, 0.1, 13, 0.11, 256),
   trench: R(0.77, -8, 4, 0.11, 9, 0.25, 318),
+  // Light pets — quick, bright, darting motion
+  glimmer: R(0.9, 5, 8, 0.12, 11, 0.15, 268),
+  luminar: R(0.96, -4, 14, 0.09, 12, 0.11, 255),
+  dawnling: R(0.84, -6, -9, 0.13, 9, 0.2, 290),
+  solstice: R(0.98, 4, 17, 0.08, 10, 0.1, 252),
+  halo: R(0.8, 8, -12, 0.14, 13, 0.22, 300),
+  prismoth: R(0.87, -9, 11, 0.11, 14, 0.17, 275),
+  aurelion: R(1.02, 3, 20, 0.07, 6, 0.09, 248),
+  // Shadow pets — low, heavy, lunging motion
+  gloam: R(0.92, -5, 7, 0.1, 3, 0.16, 276),
+  umbraith: R(1.0, 6, -15, 0.07, 4, 0.1, 254),
+  dusklet: R(0.82, 7, -8, 0.12, 5, 0.21, 296),
+  nightfall: R(0.99, -3, 18, 0.07, 3, 0.1, 251),
+  shade: R(0.78, -8, 6, 0.13, 2, 0.24, 312),
+  murkfang: R(0.95, 4, 13, 0.09, 6, 0.13, 262),
+  eclipsor: R(1.03, -2, 21, 0.05, 5, 0.08, 244),
 };
 
 for (const id of Object.keys(PET_TEMPLATES)) {
@@ -246,4 +263,101 @@ export function playPetAttackAnimation(
       });
     },
   });
+}
+
+/**
+ * Full move animation: attacker choreography + move-specific visual effect.
+ * `onComplete` fires once the attacker has recovered and the effect has landed.
+ */
+export function playMoveAnimation(
+  scene: Phaser.Scene,
+  sprite: Phaser.GameObjects.Image,
+  combatant: IBattleCombatant,
+  move: IMove,
+  aim: { x: number; y: number },
+  onComplete: () => void,
+): void {
+  prepareMoveFx(scene);
+  const fx = getMoveFx(move);
+  const color = TYPE_FX_COLOR[move.type] ?? 0xffffff;
+  const start = { x: sprite.x, y: sprite.y };
+  const dx = aim.x - start.x;
+  const dy = aim.y - start.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = dx / len;
+  const ny = dy / len;
+
+  if (fx.mode === 'dash') {
+    scene.tweens.killTweensOf(sprite);
+    const snap = { sx: sprite.scaleX, sy: sprite.scaleY, angle: sprite.angle };
+    const gap = Math.min(64, len * 0.6);
+    const contact = { x: aim.x - nx * gap, y: aim.y - ny * gap };
+    let finished = false;
+
+    const recover = (): void => {
+      if (finished) return;
+      finished = true;
+      scene.tweens.add({
+        targets: sprite, x: start.x, y: start.y, scaleX: snap.sx, scaleY: snap.sy, angle: snap.angle,
+        duration: 240, ease: 'Cubic.easeOut',
+        onComplete: () => {
+          sprite.setPosition(start.x, start.y).setScale(snap.sx, snap.sy).setAngle(snap.angle);
+          onComplete();
+        },
+      });
+    };
+
+    // Crouch / windup
+    scene.tweens.add({
+      targets: sprite, x: start.x - nx * 18, y: start.y - ny * 18,
+      scaleX: snap.sx * 1.12, scaleY: snap.sy * 0.88, duration: 140, ease: 'Sine.easeOut',
+      onComplete: () => {
+        let lastGhost = 0;
+        const dash = { v: 0 };
+        const from = { x: sprite.x, y: sprite.y };
+        scene.tweens.add({
+          targets: dash, v: 1, duration: 120, ease: 'Cubic.easeIn',
+          onUpdate: () => {
+            sprite.x = from.x + (contact.x - from.x) * dash.v;
+            sprite.y = from.y + (contact.y - from.y) * dash.v;
+            sprite.setScale(snap.sx * (1 + 0.15 * dash.v), snap.sy * (1 - 0.1 * dash.v));
+            if (dash.v - lastGhost > 0.12) {
+              lastGhost = dash.v;
+              const ghost = scene.add.image(sprite.x, sprite.y, sprite.texture.key)
+                .setScale(sprite.scaleX, sprite.scaleY).setTint(color).setAlpha(0.55)
+                .setDepth(sprite.depth - 1).setFlipX(sprite.flipX);
+              scene.tweens.add({
+                targets: ghost, alpha: 0, duration: 230, onComplete: () => ghost.destroy(),
+              });
+            }
+          },
+          onComplete: () => {
+            sprite.setScale(snap.sx * 1.1, snap.sy * 0.95);
+            fx.run({ s: scene, from: contact, to: aim, ang: Math.atan2(ny, nx), done: recover });
+            scene.time.delayedCall(2500, recover); // safety net
+          },
+        });
+      },
+    });
+    return;
+  }
+
+  // cast / summon: keep the pet's recipe motion, run the effect alongside it.
+  let pending = 2;
+  const join = (): void => {
+    if (--pending === 0) onComplete();
+  };
+  let doneCalled = false;
+  const effectDone = (): void => {
+    if (doneCalled) return;
+    doneCalled = true;
+    join();
+  };
+  playPetAttackAnimation(
+    scene, sprite, combatant,
+    { targetX: aim.x, targetY: aim.y, moveCategory: AttackCategory.Ranged },
+    join,
+  );
+  fx.run({ s: scene, from: start, to: aim, ang: Math.atan2(ny, nx), done: effectDone });
+  scene.time.delayedCall(3000, effectDone); // safety net
 }

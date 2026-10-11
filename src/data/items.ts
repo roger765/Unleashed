@@ -1,4 +1,5 @@
 import { IItem, ItemType, PetType } from '../types';
+import { MOVES, BOSS_MOVE_IDS } from './moves';
 
 export const ITEMS: Record<string, IItem> = {
   'star-staff': {
@@ -79,6 +80,15 @@ export const ITEMS: Record<string, IItem> = {
     description: 'A grand meal fit for a champion. Instantly restores 100 HP.',
     buyPrice: 15,
     healAmount: 100,
+  },
+  'pet-food': {
+    id: 'pet-food',
+    name: 'Pet Food',
+    itemType: ItemType.Food,
+    description: 'Hearty kibble that fully restores a pet\'s HP and refills its attack allowance (AA).',
+    buyPrice: 5,
+    healsFully: true,
+    refillsAA: true,
   },
 
   // --- Armor Tier 1: Defense only (shop, cheap) ---
@@ -210,4 +220,148 @@ export const ITEMS: Record<string, IItem> = {
     defenseBoost: 20,
     hpBoostPercent: 15,
   },
+  // --- Light & Shadow gear ---
+
+  'light-staff': {
+    id: 'light-staff',
+    name: 'Light Staff',
+    itemType: ItemType.Staff,
+    description: 'A staff that holds captured sunlight. Unlocks Light moves.',
+    buyPrice: 350,
+    attackType: PetType.Light,
+    moveIds: ['flash', 'radiant-beam', 'dawn-strike'],
+  },
+  'shadow-scythe': {
+    id: 'shadow-scythe',
+    name: 'Shadow Scythe',
+    itemType: ItemType.Weapon,
+    description: 'A scythe that cuts a slice out of the light. Unlocks Shadow moves.',
+    buyPrice: 350,
+    attackType: PetType.Shadow,
+    moveIds: ['shade-claw', 'gloom-bolt', 'night-slash'],
+  },
+  'radiant-mail': {
+    id: 'radiant-mail',
+    name: 'Radiant Mail',
+    itemType: ItemType.ArmorChest,
+    description: 'Mail that glows faintly. +14 defense and reduces Light-type damage by 35%.',
+    buyPrice: 560,
+    defenseBoost: 14,
+    resistType: PetType.Light,
+    resistPercent: 35,
+  },
+  'umbral-cloak': {
+    id: 'umbral-cloak',
+    name: 'Umbral Cloak',
+    itemType: ItemType.ArmorChest,
+    description: 'A cloak woven from deep shade. +14 defense and reduces Shadow-type damage by 35%.',
+    buyPrice: 560,
+    defenseBoost: 14,
+    resistType: PetType.Shadow,
+    resistPercent: 35,
+  },
+  'light-charm-1': {
+    id: 'light-charm-1',
+    name: 'Faint Light Charm',
+    itemType: ItemType.Charm,
+    description: 'Charm slot: x2 Light spawn chance in old zones.',
+    buyPrice: 300,
+    boostType: PetType.Light,
+    spawnMultiplier: 2,
+  },
+  'light-charm-2': {
+    id: 'light-charm-2',
+    name: 'Strong Light Charm',
+    itemType: ItemType.Charm,
+    description: 'Charm slot: x4 Light spawn chance in old zones.',
+    buyPrice: 900,
+    boostType: PetType.Light,
+    spawnMultiplier: 4,
+  },
+  'light-charm-3': {
+    id: 'light-charm-3',
+    name: 'Mighty Light Charm',
+    itemType: ItemType.Charm,
+    description: 'Charm slot: x8 Light spawn chance in old zones.',
+    buyPrice: 2500,
+    boostType: PetType.Light,
+    spawnMultiplier: 8,
+  },
+  'shadow-charm-1': {
+    id: 'shadow-charm-1',
+    name: 'Faint Shadow Charm',
+    itemType: ItemType.Charm,
+    description: 'Charm slot: x2 Shadow spawn chance in old zones.',
+    buyPrice: 300,
+    boostType: PetType.Shadow,
+    spawnMultiplier: 2,
+  },
+  'shadow-charm-2': {
+    id: 'shadow-charm-2',
+    name: 'Strong Shadow Charm',
+    itemType: ItemType.Charm,
+    description: 'Charm slot: x4 Shadow spawn chance in old zones.',
+    buyPrice: 900,
+    boostType: PetType.Shadow,
+    spawnMultiplier: 4,
+  },
+  'shadow-charm-3': {
+    id: 'shadow-charm-3',
+    name: 'Mighty Shadow Charm',
+    itemType: ItemType.Charm,
+    description: 'Charm slot: x8 Shadow spawn chance in old zones.',
+    buyPrice: 2500,
+    boostType: PetType.Shadow,
+    spawnMultiplier: 8,
+  },
+  'light-lure': {
+    id: 'light-lure',
+    name: 'Light Lure',
+    itemType: ItemType.Lure,
+    description: 'Use from bag: x4 Light spawn chance for 10 min.',
+    buyPrice: 150,
+    boostType: PetType.Light,
+    spawnMultiplier: 4,
+    lureDurationMs: 600000,
+  },
+  'light-stone': {
+    id: 'light-stone',
+    name: 'Light Stone',
+    itemType: ItemType.EvoStone,
+    description: 'Used with spirits to evolve a Light pet.',
+    buyPrice: 400,
+    stoneType: PetType.Light,
+  },
+  'shadow-lure': {
+    id: 'shadow-lure',
+    name: 'Shadow Lure',
+    itemType: ItemType.Lure,
+    description: 'Use from bag: x4 Shadow spawn chance for 10 min.',
+    buyPrice: 150,
+    boostType: PetType.Shadow,
+    spawnMultiplier: 4,
+    lureDurationMs: 600000,
+  },
+  'shadow-stone': {
+    id: 'shadow-stone',
+    name: 'Shadow Stone',
+    itemType: ItemType.EvoStone,
+    description: 'Used with spirits to evolve a Shadow pet.',
+    buyPrice: 400,
+    stoneType: PetType.Shadow,
+  },
 };
+
+// ── TMs: one single-use item per move, generated from the move table ──
+for (const move of Object.values(MOVES)) {
+  const isBoss = BOSS_MOVE_IDS.includes(move.id);
+  const buyPrice = isBoss ? 500 : Math.max(100, Math.round((move.power * 8) / 10) * 10);
+  ITEMS[`tm-${move.id}`] = {
+    id: `tm-${move.id}`,
+    name: `TM: ${move.name}`,
+    itemType: ItemType.TM,
+    description: `Teaches ${move.name} (power ${move.power}). Single use.`,
+    buyPrice,
+    teachMoveId: move.id,
+  };
+}
