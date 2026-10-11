@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { PET_TEMPLATES } from '../data/pets';
 import { IBattleCombatant } from '../types/battle';
-import { AttackCategory } from '../types/move';
+import { AttackCategory, IMove } from '../types/move';
+import { getMoveFx, prepareMoveFx, TYPE_FX_COLOR } from '../fx/moveEffects';
 
 /** Per-pet numeric recipe; each pet has a unique tuple so motion reads differently. */
 export interface PetAttackRecipe {
@@ -262,4 +263,101 @@ export function playPetAttackAnimation(
       });
     },
   });
+}
+
+/**
+ * Full move animation: attacker choreography + move-specific visual effect.
+ * `onComplete` fires once the attacker has recovered and the effect has landed.
+ */
+export function playMoveAnimation(
+  scene: Phaser.Scene,
+  sprite: Phaser.GameObjects.Image,
+  combatant: IBattleCombatant,
+  move: IMove,
+  aim: { x: number; y: number },
+  onComplete: () => void,
+): void {
+  prepareMoveFx(scene);
+  const fx = getMoveFx(move);
+  const color = TYPE_FX_COLOR[move.type] ?? 0xffffff;
+  const start = { x: sprite.x, y: sprite.y };
+  const dx = aim.x - start.x;
+  const dy = aim.y - start.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = dx / len;
+  const ny = dy / len;
+
+  if (fx.mode === 'dash') {
+    scene.tweens.killTweensOf(sprite);
+    const snap = { sx: sprite.scaleX, sy: sprite.scaleY, angle: sprite.angle };
+    const gap = Math.min(64, len * 0.6);
+    const contact = { x: aim.x - nx * gap, y: aim.y - ny * gap };
+    let finished = false;
+
+    const recover = (): void => {
+      if (finished) return;
+      finished = true;
+      scene.tweens.add({
+        targets: sprite, x: start.x, y: start.y, scaleX: snap.sx, scaleY: snap.sy, angle: snap.angle,
+        duration: 240, ease: 'Cubic.easeOut',
+        onComplete: () => {
+          sprite.setPosition(start.x, start.y).setScale(snap.sx, snap.sy).setAngle(snap.angle);
+          onComplete();
+        },
+      });
+    };
+
+    // Crouch / windup
+    scene.tweens.add({
+      targets: sprite, x: start.x - nx * 18, y: start.y - ny * 18,
+      scaleX: snap.sx * 1.12, scaleY: snap.sy * 0.88, duration: 140, ease: 'Sine.easeOut',
+      onComplete: () => {
+        let lastGhost = 0;
+        const dash = { v: 0 };
+        const from = { x: sprite.x, y: sprite.y };
+        scene.tweens.add({
+          targets: dash, v: 1, duration: 120, ease: 'Cubic.easeIn',
+          onUpdate: () => {
+            sprite.x = from.x + (contact.x - from.x) * dash.v;
+            sprite.y = from.y + (contact.y - from.y) * dash.v;
+            sprite.setScale(snap.sx * (1 + 0.15 * dash.v), snap.sy * (1 - 0.1 * dash.v));
+            if (dash.v - lastGhost > 0.12) {
+              lastGhost = dash.v;
+              const ghost = scene.add.image(sprite.x, sprite.y, sprite.texture.key)
+                .setScale(sprite.scaleX, sprite.scaleY).setTint(color).setAlpha(0.55)
+                .setDepth(sprite.depth - 1).setFlipX(sprite.flipX);
+              scene.tweens.add({
+                targets: ghost, alpha: 0, duration: 230, onComplete: () => ghost.destroy(),
+              });
+            }
+          },
+          onComplete: () => {
+            sprite.setScale(snap.sx * 1.1, snap.sy * 0.95);
+            fx.run({ s: scene, from: contact, to: aim, ang: Math.atan2(ny, nx), done: recover });
+            scene.time.delayedCall(2500, recover); // safety net
+          },
+        });
+      },
+    });
+    return;
+  }
+
+  // cast / summon: keep the pet's recipe motion, run the effect alongside it.
+  let pending = 2;
+  const join = (): void => {
+    if (--pending === 0) onComplete();
+  };
+  let doneCalled = false;
+  const effectDone = (): void => {
+    if (doneCalled) return;
+    doneCalled = true;
+    join();
+  };
+  playPetAttackAnimation(
+    scene, sprite, combatant,
+    { targetX: aim.x, targetY: aim.y, moveCategory: AttackCategory.Ranged },
+    join,
+  );
+  fx.run({ s: scene, from: start, to: aim, ang: Math.atan2(ny, nx), done: effectDone });
+  scene.time.delayedCall(3000, effectDone); // safety net
 }

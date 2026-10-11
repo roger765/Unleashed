@@ -25,6 +25,7 @@ import { CastleRoomScene } from './scenes/CastleRoomScene';
 import { CastleBasementScene } from './scenes/CastleBasementScene';
 import { SunlitMeadowsScene } from './scenes/SunlitMeadowsScene';
 import { GloomhollowScene } from './scenes/GloomhollowScene';
+import { MoveShowcaseScene } from './scenes/MoveShowcaseScene';
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -56,5 +57,6 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
     CastleBasementScene,
     SunlitMeadowsScene,
     GloomhollowScene,
+    MoveShowcaseScene,
   ],
 };

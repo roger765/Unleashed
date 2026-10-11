@@ -3,7 +3,7 @@ import { SCREEN_WIDTH, SCREEN_HEIGHT } from '../constants';
 import { IBattleCombatant, IDamageResult } from '../types/battle';
 import { AttackCategory } from '../types/move';
 import { BattleManager, BattlePhase, BattleConfig } from '../battle/BattleManager';
-import { playPetAttackAnimation } from '../battle/petAttackAnimations';
+import { playMoveAnimation } from '../battle/petAttackAnimations';
 import { getCaptureInfo, performCapture, CaptureInfo } from '../battle/CaptureManager';
 import { GameState } from '../state/GameState';
 import { Button } from '../ui/Button';
@@ -447,11 +447,12 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    playPetAttackAnimation(
+    playMoveAnimation(
       this,
       attackerEntry.sprite,
       attackerEntry.combatant,
-      { targetX: aim.x, targetY: aim.y, moveCategory: move.category },
+      move,
+      aim,
       afterAttackAnim,
     );
   }
@@ -486,11 +487,12 @@ export class BattleScene extends Phaser.Scene {
         return;
       }
 
-      playPetAttackAnimation(
+      playMoveAnimation(
         this,
         enemyEntry.sprite,
         enemyEntry.combatant,
-        { targetX: aim.x, targetY: aim.y, moveCategory: move.category },
+        move,
+        aim,
         afterAttackAnim,
       );
     });

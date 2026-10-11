@@ -58,7 +58,8 @@ export class PreloadScene extends Phaser.Scene {
       onComplete: () => {
         statusText.setText('Ready!');
         this.time.delayedCall(400, () => {
-          this.scene.start('MainMenuScene');
+          const showcase = import.meta.env.DEV && new URLSearchParams(window.location.search).has('showcase');
+          this.scene.start(showcase ? 'MoveShowcaseScene' : 'MainMenuScene');
         });
       },
     });
