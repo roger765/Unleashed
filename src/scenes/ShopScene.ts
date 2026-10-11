@@ -7,12 +7,13 @@ import { Button } from '../ui/Button';
 import { Toast } from '../ui/Toast';
 import { AudioManager } from '../audio/AudioManager';
 
-type TabKey = 'Weapons' | 'Armour' | 'Items';
+type TabKey = 'Weapons' | 'Armour' | 'Items' | 'Charms';
 
 const TAB_CATEGORIES: Record<TabKey, string[]> = {
   Weapons: ['Weapons'],
   Armour: ['Armor'],
   Items: ['Healing', 'Food'],
+  Charms: ['Charms', 'Lures', 'Stones'],
 };
 
 const TAB_COLOR_ACTIVE = 0xb8860b;
@@ -43,9 +44,9 @@ export class ShopScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // ── Tab buttons ──────────────────────────────────────────────
-    const tabs: TabKey[] = ['Weapons', 'Armour', 'Items'];
+    const tabs: TabKey[] = ['Weapons', 'Armour', 'Items', 'Charms'];
     const tabButtons: Partial<Record<TabKey, Button>> = {};
-    const tabSpacing = 180;
+    const tabSpacing = 170;
     const tabY = 200;
 
     // ── Tab content containers ───────────────────────────────────
@@ -64,7 +65,7 @@ export class ShopScene extends Phaser.Scene {
     };
 
     tabs.forEach((tab, i) => {
-      const x = cx + (i - 1) * tabSpacing;
+      const x = cx + (i - (tabs.length - 1) / 2) * tabSpacing;
       tabButtons[tab] = new Button(this, x, tabY, tab, () => showTab(tab), {
         width: 160, height: 38, fontSize: '16px', fillColor: TAB_COLOR_INACTIVE,
       });
@@ -91,6 +92,10 @@ export class ShopScene extends Phaser.Scene {
 
     let yOff = 240;
     let lastCategory = '';
+
+    // Shrink row pitch for long lists so they stay clear of the Back button.
+    const categoryCount = new Set(entries.map(e => e.category)).size;
+    const rowPitch = Math.min(36, Math.floor((380 - categoryCount * 26) / Math.max(1, entries.length)));
 
     for (const shopEntry of entries) {
       const item = ITEMS[shopEntry.itemId];
@@ -127,7 +132,7 @@ export class ShopScene extends Phaser.Scene {
       }, { width: 70, height: 28, fontSize: '12px', fillColor: 0x27ae60 });
       container.add(buyBtn);
 
-      yOff += 36;
+      yOff += rowPitch;
     }
 
     return container;

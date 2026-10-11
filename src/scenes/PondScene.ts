@@ -7,6 +7,7 @@ import { GameState } from '../state/GameState';
 import { EventBus } from '../state/EventBus';
 import { isTouchDevice } from '../utils/mobile';
 import { PET_TEMPLATES } from '../data/pets';
+import { rollWildTemplate } from '../utils/spawn';
 import { IPetInstance } from '../types/pet';
 import { createPetCombatant, buildPlayerTeamFromState } from '../battle/Combatant';
 import { BattleConfig } from '../battle/BattleManager';
@@ -99,7 +100,7 @@ export class PondScene extends Phaser.Scene {
     const waterPets = ['wave', 'puddle', 'brook', 'reef', 'tsunami'];
     for (let i = 0; i < 6; i++) {
       const tid = waterPets[randomInt(0, waterPets.length - 1)];
-      const template = PET_TEMPLATES[tid];
+      const template = rollWildTemplate(PET_TEMPLATES[tid]);
       // Place around pond edge (ring at distance ~10-12 from center)
       const angle = (i / 6) * Math.PI * 2;
       const r = 10 * TILE_SIZE;

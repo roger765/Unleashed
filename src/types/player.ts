@@ -20,6 +20,7 @@ export interface IPlayerState {
   spirits: number;
   equippedWeaponId: string | null;
   equippedArmor: IEquippedArmor;
+  equippedCharmId: string | null;
   team: IPetInstance[];
   storage: IPetInstance[];
   inventory: { itemId: string; quantity: number }[];

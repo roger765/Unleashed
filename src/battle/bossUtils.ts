@@ -1,4 +1,10 @@
-import { IBossDefinition, OVERWORLD_ZONE_BOSS_IDS } from '../data/bosses';
+import {
+  IBossDefinition,
+  OVERWORLD_ZONE_BOSS_IDS,
+  CASTLE_MASTER_BOSS_IDS,
+  BASEMENT_BOSS_IDS,
+  LIGHT_SHADOW_ZONE_BOSS_IDS,
+} from '../data/bosses';
 import { MOVES } from '../data/moves';
 import { PET_TEMPLATES } from '../data/pets';
 import { GameState } from '../state/GameState';
@@ -10,6 +16,26 @@ import { createPetCombatant } from './Combatant';
 export function areAllOverworldZoneBossesDefeated(): boolean {
   const gs = GameState.getInstance();
   return OVERWORLD_ZONE_BOSS_IDS.every((bid) => gs.getFlag(`boss-defeated-${bid}`));
+}
+
+const allDefeated = (ids: string[]): boolean => {
+  const gs = GameState.getInstance();
+  return ids.every((bid) => gs.getFlag(`boss-defeated-${bid}`));
+};
+
+/** True when all three Castle of Masters guardians are defeated (opens the basement). */
+export function areAllCastleMastersDefeated(): boolean {
+  return allDefeated(CASTLE_MASTER_BOSS_IDS);
+}
+
+/** True when all three basement trainers are defeated (opens the portals). */
+export function areAllBasementTrainersDefeated(): boolean {
+  return allDefeated(BASEMENT_BOSS_IDS);
+}
+
+/** True when both Light and Shadow zone bosses are defeated (opens the Eclipse Sanctum gate). */
+export function areBothZoneBossesDefeated(): boolean {
+  return allDefeated(LIGHT_SHADOW_ZONE_BOSS_IDS);
 }
 
 /** Build scaled boss enemy combatants (same stat formula as tower / Thornguard). */

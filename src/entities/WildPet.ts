@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { IPetTemplate } from '../types/pet';
 import { randomInt } from '../utils/math';
 import { GameState } from '../state/GameState';
+import { LEVEL_CAP } from '../constants';
 
 type WildPetState = 'idle' | 'roaming' | 'chasing';
 
@@ -27,7 +28,13 @@ export class WildPet extends Phaser.Physics.Arcade.Sprite {
   ) {
     super(scene, x, y, template.id);
     this.petTemplate = template;
-    this.petLevel = level;
+    // Wild pets scale with the player: usually 1-4 levels behind, with a ~12% chance of a
+    // tougher one at the player's level or up to 2 above. Never below the zone's base level.
+    const playerLevel = GameState.getInstance().getState().level;
+    const scaled = Math.random() < 0.12
+      ? playerLevel + randomInt(0, 2)
+      : playerLevel - randomInt(1, 4);
+    this.petLevel = Math.min(LEVEL_CAP, Math.max(level, scaled));
     this.aggroRadius = aggroRadius;
     this.roamRadius = roamRadius;
     this.originPos = new Phaser.Math.Vector2(x, y);

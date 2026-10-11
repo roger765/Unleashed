@@ -5,6 +5,7 @@ import { initSceneMultiplayer, tickSceneMultiplayer, cleanupSceneMultiplayer } f
 import { WildPet } from '../entities/WildPet';
 import { GameState } from '../state/GameState';
 import { PET_TEMPLATES } from '../data/pets';
+import { rollWildTemplate } from '../utils/spawn';
 import { IPetInstance, IPetTemplate, PetType } from '../types/pet';
 import { createPetCombatant, buildPlayerTeamFromState } from '../battle/Combatant';
 import { BattleConfig } from '../battle/BattleManager';
@@ -179,7 +180,7 @@ export class ConvergenceWildsScene extends Phaser.Scene {
       const b = biomeAt(tx, ty);
       const pool = pools[b];
       if (pool.length === 0) continue;
-      const template = pool[randomInt(0, pool.length - 1)];
+      const template = rollWildTemplate(pool[randomInt(0, pool.length - 1)]);
       const px = tx * TILE_SIZE + TILE_SIZE / 2;
       const py = ty * TILE_SIZE + TILE_SIZE / 2;
       const level = randomInt(18, 30);

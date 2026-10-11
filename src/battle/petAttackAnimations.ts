@@ -105,6 +105,22 @@ const PET_ATTACK_RECIPES: Record<string, PetAttackRecipe> = {
   riptide: R(0.92, 7, -14, 0.09, 12, 0.15, 268),
   deluge: R(0.99, 6, 15, 0.1, 13, 0.11, 256),
   trench: R(0.77, -8, 4, 0.11, 9, 0.25, 318),
+  // Light pets — quick, bright, darting motion
+  glimmer: R(0.9, 5, 8, 0.12, 11, 0.15, 268),
+  luminar: R(0.96, -4, 14, 0.09, 12, 0.11, 255),
+  dawnling: R(0.84, -6, -9, 0.13, 9, 0.2, 290),
+  solstice: R(0.98, 4, 17, 0.08, 10, 0.1, 252),
+  halo: R(0.8, 8, -12, 0.14, 13, 0.22, 300),
+  prismoth: R(0.87, -9, 11, 0.11, 14, 0.17, 275),
+  aurelion: R(1.02, 3, 20, 0.07, 6, 0.09, 248),
+  // Shadow pets — low, heavy, lunging motion
+  gloam: R(0.92, -5, 7, 0.1, 3, 0.16, 276),
+  umbraith: R(1.0, 6, -15, 0.07, 4, 0.1, 254),
+  dusklet: R(0.82, 7, -8, 0.12, 5, 0.21, 296),
+  nightfall: R(0.99, -3, 18, 0.07, 3, 0.1, 251),
+  shade: R(0.78, -8, 6, 0.13, 2, 0.24, 312),
+  murkfang: R(0.95, 4, 13, 0.09, 6, 0.13, 262),
+  eclipsor: R(1.03, -2, 21, 0.05, 5, 0.08, 244),
 };
 
 for (const id of Object.keys(PET_TEMPLATES)) {

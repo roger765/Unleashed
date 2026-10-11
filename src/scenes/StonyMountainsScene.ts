@@ -7,6 +7,7 @@ import { GameState } from '../state/GameState';
 import { EventBus } from '../state/EventBus';
 import { isTouchDevice } from '../utils/mobile';
 import { PET_TEMPLATES } from '../data/pets';
+import { rollWildTemplate } from '../utils/spawn';
 import { IPetInstance } from '../types/pet';
 import { createPetCombatant, buildPlayerTeamFromState } from '../battle/Combatant';
 import { BattleConfig } from '../battle/BattleManager';
@@ -94,7 +95,7 @@ export class StonyMountainsScene extends Phaser.Scene {
 
     for (let i = 0; i < 9; i++) {
       const tid = MOUNTAIN_ROCK_PETS[randomInt(0, MOUNTAIN_ROCK_PETS.length - 1)];
-      const template = PET_TEMPLATES[tid];
+      const template = rollWildTemplate(PET_TEMPLATES[tid]);
       const px = randomInt(3, MAP_W - 4) * TILE_SIZE;
       const py = randomInt(4, MAP_H - 5) * TILE_SIZE;
       const level = randomInt(6, 16);

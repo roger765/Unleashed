@@ -3,6 +3,8 @@ import { TILE_SIZE, SCREEN_WIDTH, SCREEN_HEIGHT } from '../constants';
 import { Player } from '../entities/Player';
 import { AudioManager } from '../audio/AudioManager';
 import { GameState } from '../state/GameState';
+import { Toast } from '../ui/Toast';
+import { areAllCastleMastersDefeated } from '../battle/bossUtils';
 import { initSceneMultiplayer, tickSceneMultiplayer, cleanupSceneMultiplayer } from '../multiplayer/sceneMultiplayer';
 
 // Fill the screen: 40 cols × 1280px, 23 rows × 736px (16px taller than viewport — negligible scroll)
@@ -30,6 +32,7 @@ export class CastleOfMastersScene extends Phaser.Scene {
   private player!: Player;
   private walls!: Phaser.Physics.Arcade.StaticGroup;
   private transitioning = false;
+  private stairToastUntil = 0;
 
   constructor() {
     super({ key: 'CastleOfMastersScene' });
@@ -37,6 +40,7 @@ export class CastleOfMastersScene extends Phaser.Scene {
 
   create(): void {
     this.transitioning = false;
+    this.stairToastUntil = 0;
 
     this.cameras.main.fadeIn(400, 0, 0, 0);
     AudioManager.playMusic('calm');
@@ -91,6 +95,41 @@ export class CastleOfMastersScene extends Phaser.Scene {
         });
       });
     }
+
+    // Basement stairwell on the west side — opens once all three Masters are defeated
+    const basementOpen = areAllCastleMastersDefeated();
+    const stairX = 2.5 * TILE_SIZE;
+    const stairY = 11 * TILE_SIZE;
+    for (let r = 10; r <= 12; r++) {
+      for (let c = 1; c <= 2; c++) {
+        const tile = this.add.image(c * TILE_SIZE + TILE_SIZE / 2, r * TILE_SIZE + TILE_SIZE / 2, 'tile-door')
+          .setDepth(2);
+        if (!basementOpen) tile.setTint(0x555555);
+      }
+    }
+    this.add.text(stairX, stairY - 3 * TILE_SIZE + 8, basementOpen ? '↓ Basement' : '↓ Basement (sealed)', {
+      fontSize: '12px', fontFamily: 'Arial', color: basementOpen ? '#c9b6ff' : '#888888',
+      stroke: '#000', strokeThickness: 2,
+    }).setOrigin(0, 0.5).setDepth(10);
+    const stairZone = this.add.zone(stairX, stairY, 2 * TILE_SIZE, 3 * TILE_SIZE);
+    this.physics.add.existing(stairZone, true);
+    (stairZone.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
+    this.physics.add.overlap(this.player, stairZone, () => {
+      if (this.transitioning) return;
+      if (!areAllCastleMastersDefeated()) {
+        if (this.time.now > this.stairToastUntil) {
+          this.stairToastUntil = this.time.now + 2000;
+          Toast.show(this, 'The way down is sealed. Defeat all three Masters.');
+        }
+        return;
+      }
+      this.transitioning = true;
+      this.cameras.main.fadeOut(300, 0, 0, 0);
+      this.cameras.main.once('camerafadeoutcomplete', () => {
+        this.scene.stop('UIScene');
+        this.scene.start('CastleBasementScene');
+      });
+    });
 
     this.physics.add.overlap(this.player, exitZone, () => {
       if (this.transitioning) return;

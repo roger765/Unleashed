@@ -3,17 +3,21 @@ import { SCREEN_WIDTH, SCREEN_HEIGHT } from '../constants';
 import { GameState } from '../state/GameState';
 import { ITEMS } from '../data/items';
 import { ItemType, ArmorSlot } from '../types/item';
+import { PetType } from '../types/pet';
+import { PET_TYPE_LABELS } from '../utils/math';
 import { Panel } from './Panel';
 import { Button } from './Button';
 import { Toast } from './Toast';
 
-type BagTab = 'Weapons' | 'Armour' | 'Items';
+type BagTab = 'Weapons' | 'Armour' | 'Items' | 'Charms';
 
 const TAB_COLOR_ACTIVE = 0xb8860b;
 const TAB_COLOR_INACTIVE = 0x2c3e50;
 
 const WEAPON_TYPES = new Set([ItemType.Weapon, ItemType.Staff]);
 const ARMOR_TYPES = new Set([ItemType.ArmorHelmet, ItemType.ArmorChest, ItemType.ArmorBoots]);
+
+const CHARM_TAB_TYPES = new Set([ItemType.Charm, ItemType.Lure, ItemType.EvoStone]);
 
 const ARMOR_SLOT_MAP: Record<number, ArmorSlot> = {
   [ItemType.ArmorHelmet]: 'helmet',
@@ -69,10 +73,10 @@ export class BagUI {
     this.container.add(closeBtn);
 
     // ── Tabs ────────────────────────────────────────────────────────
-    const tabs: BagTab[] = ['Weapons', 'Armour', 'Items'];
+    const tabs: BagTab[] = ['Weapons', 'Armour', 'Items', 'Charms'];
     const tabButtons: Partial<Record<BagTab, Button>> = {};
     const tabContainers: Partial<Record<BagTab, Phaser.GameObjects.Container>> = {};
-    const tabSpacing = 170;
+    const tabSpacing = 140;
     const tabY = cy - 175;
 
     for (const tab of tabs) {
@@ -89,9 +93,9 @@ export class BagUI {
     };
 
     tabs.forEach((tab, i) => {
-      const x = cx + (i - 1) * tabSpacing;
+      const x = cx + (i - (tabs.length - 1) / 2) * tabSpacing;
       tabButtons[tab] = new Button(this.scene, x, tabY, tab, () => showTab(tab), {
-        width: 155, height: 36, fontSize: '15px', fillColor: TAB_COLOR_INACTIVE,
+        width: 130, height: 36, fontSize: '15px', fillColor: TAB_COLOR_INACTIVE,
       });
       this.container.add(tabButtons[tab]!);
     });
@@ -162,7 +166,7 @@ export class BagUI {
       const resistKeys = Object.keys(resistances) as unknown as number[];
       const resistSummary = resistKeys.length > 0
         ? '  |  Resists: ' + resistKeys.map(t =>
-            `${['Rock', 'Nature', 'Wood', 'Water', 'Normal'][t as number]} ${resistances[t as keyof typeof resistances]}%`
+            `${PET_TYPE_LABELS[t as PetType]} ${resistances[t as keyof typeof resistances]}%`
           ).join(', ')
         : '';
       const hpSummary = totalHp > 0 ? `  +${totalHp}% HP` : '';
@@ -215,7 +219,8 @@ export class BagUI {
     if (tab === 'Items') {
       const items = state.inventory.filter(s => {
         const item = ITEMS[s.itemId];
-        return item && !WEAPON_TYPES.has(item.itemType) && !ARMOR_TYPES.has(item.itemType);
+        return item && !WEAPON_TYPES.has(item.itemType) && !ARMOR_TYPES.has(item.itemType)
+          && !CHARM_TAB_TYPES.has(item.itemType);
       });
 
       if (items.length === 0) {
@@ -229,6 +234,60 @@ export class BagUI {
             fontSize: '13px', fontFamily: 'Arial', color: '#ffffff',
             wordWrap: { width: 460 },
           }));
+          yOff += 35;
+        }
+      }
+    }
+
+    if (tab === 'Charms') {
+      const charmId = state.equippedCharmId;
+      const charmName = charmId ? (ITEMS[charmId]?.name ?? 'Unknown') : 'None';
+      const lightMult = gs.getCharmSpawnMultiplier(PetType.Light) * gs.getLureSpawnMultiplier(PetType.Light);
+      const shadowMult = gs.getCharmSpawnMultiplier(PetType.Shadow) * gs.getLureSpawnMultiplier(PetType.Shadow);
+      container.add(this.scene.add.text(cx - 270, contentTop,
+        `Charm: ${charmName}  |  Spawn boost: Light x${lightMult}, Shadow x${shadowMult}`, {
+        fontSize: '13px', fontFamily: 'Arial', color: '#fff176',
+      }));
+
+      const items = state.inventory.filter(s => {
+        const item = ITEMS[s.itemId];
+        return item && CHARM_TAB_TYPES.has(item.itemType);
+      });
+
+      if (items.length === 0) {
+        container.add(this.emptyText(cx, cy, 'No charms, lures or stones in bag.'));
+      } else {
+        let yOff = contentTop + 28;
+        for (const slot of items) {
+          const item = ITEMS[slot.itemId]!;
+          container.add(this.scene.add.text(cx - 250, yOff,
+            `${item.name} x${slot.quantity} — ${item.description}`, {
+            fontSize: '13px', fontFamily: 'Arial', color: '#c9b6ff',
+            wordWrap: { width: 370 },
+          }));
+
+          if (item.itemType === ItemType.Charm) {
+            const isEquipped = state.equippedCharmId === slot.itemId;
+            container.add(new Button(this.scene, cx + 230, yOff + 8,
+              isEquipped ? 'Unequip' : 'Equip',
+              () => {
+                if (isEquipped) gs.unequipCharm(); else gs.equipCharm(slot.itemId);
+                this.show();
+              },
+              { width: 80, height: 28, fontSize: '11px', fillColor: isEquipped ? 0xc0392b : 0x8e44ad },
+            ));
+          } else if (item.itemType === ItemType.Lure) {
+            container.add(new Button(this.scene, cx + 230, yOff + 8, 'Use',
+              () => {
+                if (gs.activateLure(slot.itemId)) {
+                  gs.removeItem(slot.itemId, 1);
+                  Toast.show(this.scene, `${item.name} active for 10 minutes!`);
+                }
+                this.show();
+              },
+              { width: 80, height: 28, fontSize: '11px', fillColor: 0x27ae60 },
+            ));
+          }
           yOff += 35;
         }
       }

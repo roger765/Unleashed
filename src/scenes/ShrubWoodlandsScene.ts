@@ -7,6 +7,7 @@ import { GameState } from '../state/GameState';
 import { EventBus } from '../state/EventBus';
 import { isTouchDevice } from '../utils/mobile';
 import { PET_TEMPLATES } from '../data/pets';
+import { rollWildTemplate } from '../utils/spawn';
 import { IPetInstance } from '../types/pet';
 import { createPetCombatant, buildPlayerTeamFromState } from '../battle/Combatant';
 import { BattleConfig } from '../battle/BattleManager';
@@ -146,7 +147,7 @@ export class ShrubWoodlandsScene extends Phaser.Scene {
 
     for (let i = 0; i < 11; i++) {
       const tid = SHRUB_SPAWN_POOL[randomInt(0, SHRUB_SPAWN_POOL.length - 1)];
-      const template = PET_TEMPLATES[tid];
+      const template = rollWildTemplate(PET_TEMPLATES[tid]);
       const px = randomInt(5, MAP_W - 8) * TILE_SIZE;
       const py = randomInt(5, MAP_H - 8) * TILE_SIZE;
       const level = randomInt(3, 11);

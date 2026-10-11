@@ -8,6 +8,9 @@ export enum ItemType {
   ArmorHelmet,
   ArmorChest,
   ArmorBoots,
+  Charm,
+  Lure,
+  EvoStone,
 }
 
 export type ArmorSlot = 'helmet' | 'chest' | 'boots';
@@ -27,4 +30,12 @@ export interface IItem {
   hpBoostPercent?: number;
   resistType?: PetType;
   resistPercent?: number;
+  /** Charm / Lure: which type's spawn chance is boosted. */
+  boostType?: PetType;
+  /** Charm / Lure: multiplier applied to the base Light/Shadow spawn chance. */
+  spawnMultiplier?: number;
+  /** Lure: how long the boost lasts once used. */
+  lureDurationMs?: number;
+  /** EvoStone: which type of pet it can evolve. */
+  stoneType?: PetType;
 }

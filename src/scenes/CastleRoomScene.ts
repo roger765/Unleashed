@@ -16,16 +16,29 @@ import { initSceneMultiplayer, tickSceneMultiplayer, cleanupSceneMultiplayer } f
 const MAP_W = 20;
 const MAP_H = 16;
 
-type RoomId = 'boots' | 'chest' | 'helmet';
+export type RoomId =
+  | 'boots' | 'chest' | 'helmet'
+  | 'basement-1' | 'basement-2' | 'basement-3'
+  | 'sanctum';
+
+const ROOM_IDS: RoomId[] = [
+  'boots', 'chest', 'helmet', 'basement-1', 'basement-2', 'basement-3', 'sanctum',
+];
 
 interface RoomConfig {
   bossId: string;
   bossName: string;
-  chestId: string;
-  itemId: string;
-  itemName: string;
+  /** Reward chest. Omit for rooms that only reward coins. */
+  chestId?: string;
+  itemId?: string;
+  itemName?: string;
   label: string;
   intro: string[];
+  /** Scene the south exit leads to (defaults to the Castle hall). */
+  exitScene?: string;
+  exitLabel?: string;
+  /** Tint applied to floor and wall tiles. */
+  tint?: number;
 }
 
 const ROOM_CONFIGS: Record<RoomId, RoomConfig> = {
@@ -68,6 +81,58 @@ const ROOM_CONFIGS: Record<RoomId, RoomConfig> = {
       'Press R to face the deep. Your final test.',
     ],
   },
+  'basement-1': {
+    bossId: 'basement-1',
+    bossName: 'Warden of the Four',
+    label: 'Chamber of the Four',
+    exitScene: 'CastleBasementScene',
+    exitLabel: '↓ Basement',
+    tint: 0x9aa4b8,
+    intro: [
+      'Rock, Nature, Wood and Water. I command all four.',
+      'The old elements are only the first lock on this door.',
+      'Press R to begin.',
+    ],
+  },
+  'basement-2': {
+    bossId: 'basement-2',
+    bossName: 'Lumina the Radiant',
+    label: 'Chamber of Light',
+    exitScene: 'CastleBasementScene',
+    exitLabel: '↓ Basement',
+    tint: 0xfff3b0,
+    intro: [
+      'Even this deep, the light finds a way in.',
+      'My pets burn bright. Shadow alone can dim them.',
+      'Press R when your eyes have adjusted.',
+    ],
+  },
+  'basement-3': {
+    bossId: 'basement-3',
+    bossName: 'Umbra the Veiled',
+    label: 'Chamber of Shadow',
+    exitScene: 'CastleBasementScene',
+    exitLabel: '↓ Basement',
+    tint: 0x6a5a9c,
+    intro: [
+      'You have come far, little light.',
+      'My pets thrive where the lamps go out. Light alone can pierce them.',
+      'Press R to step into the dark.',
+    ],
+  },
+  sanctum: {
+    bossId: 'twilight-sovereign',
+    bossName: 'Twilight Sovereign',
+    label: 'Eclipse Sanctum',
+    exitScene: 'CastleBasementScene',
+    exitLabel: '↓ Basement',
+    tint: 0x8e7cc3,
+    intro: [
+      'Sun and shadow, side by side. Few ever bring both here.',
+      'I wield every element you have learned, and the two you have mastered.',
+      'Press R. This is the last fight.',
+    ],
+  },
 };
 
 export class CastleRoomScene extends Phaser.Scene {
@@ -93,9 +158,7 @@ export class CastleRoomScene extends Phaser.Scene {
     } else {
       // Returning from BattleScene — restore room from the flag we set before battle
       const gs = GameState.getInstance();
-      if (gs.getFlag('castle-room-chest')) this.roomId = 'chest';
-      else if (gs.getFlag('castle-room-helmet')) this.roomId = 'helmet';
-      else this.roomId = 'boots';
+      this.roomId = ROOM_IDS.find((id) => gs.getFlag(`castle-room-${id}`)) ?? 'boots';
     }
     this.config = ROOM_CONFIGS[this.roomId];
   }
@@ -129,11 +192,13 @@ export class CastleRoomScene extends Phaser.Scene {
         () => this.onBossTalk());
     }
 
-    // Chest — always present; locked until boss defeated
-    const chestX = (MAP_W / 2) * TILE_SIZE;
-    const chestY = 2 * TILE_SIZE + TILE_SIZE / 2;
-    this.chest = new Chest(this, chestX, chestY, this.config.chestId, 0,
-      { itemId: this.config.itemId, quantity: 1 });
+    // Chest — locked until boss defeated (rooms without a reward chest skip this)
+    if (this.config.chestId && this.config.itemId) {
+      const chestX = (MAP_W / 2) * TILE_SIZE;
+      const chestY = 2 * TILE_SIZE + TILE_SIZE / 2;
+      this.chest = new Chest(this, chestX, chestY, this.config.chestId, 0,
+        { itemId: this.config.itemId, quantity: 1 });
+    }
 
     // South exit — back to Castle of Masters
     const exitX = worldW / 2;
@@ -141,7 +206,7 @@ export class CastleRoomScene extends Phaser.Scene {
     this.physics.add.existing(exitZone, true);
     (exitZone.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
 
-    this.add.text(exitX, worldH - TILE_SIZE - 4, '↓ Castle Hall', {
+    this.add.text(exitX, worldH - TILE_SIZE - 4, this.config.exitLabel ?? '↓ Castle Hall', {
       fontSize: '13px', fontFamily: 'Arial', color: '#ffd700',
       stroke: '#000', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(10);
@@ -159,13 +224,15 @@ export class CastleRoomScene extends Phaser.Scene {
     this.physics.add.collider(this.player, this.walls);
 
     // Chest overlap — only opens if boss defeated
-    this.physics.add.overlap(this.player, this.chest, () => {
-      if (gs.getFlag(`boss-defeated-${this.config.bossId}`)) {
-        this.chest!.open();
-      } else {
-        Toast.show(this, 'Defeat the guardian first!');
-      }
-    });
+    if (this.chest) {
+      this.physics.add.overlap(this.player, this.chest, () => {
+        if (gs.getFlag(`boss-defeated-${this.config.bossId}`)) {
+          this.chest!.open();
+        } else {
+          Toast.show(this, 'Defeat the guardian first!');
+        }
+      });
+    }
 
     // Exit overlap
     this.physics.add.overlap(this.player, exitZone, () => {
@@ -174,7 +241,7 @@ export class CastleRoomScene extends Phaser.Scene {
       this.cameras.main.fadeOut(300, 0, 0, 0);
       this.cameras.main.once('camerafadeoutcomplete', () => {
         this.scene.stop('UIScene');
-        this.scene.start('CastleOfMastersScene');
+        this.scene.start(this.config.exitScene ?? 'CastleOfMastersScene');
       });
     });
 
@@ -241,9 +308,7 @@ export class CastleRoomScene extends Phaser.Scene {
     gs.setFlag(`fighting-boss-${this.config.bossId}`, true);
 
     // Persist current room so init() can restore it when BattleScene returns
-    gs.setFlag('castle-room-boots',  this.roomId === 'boots');
-    gs.setFlag('castle-room-chest',  this.roomId === 'chest');
-    gs.setFlag('castle-room-helmet', this.roomId === 'helmet');
+    for (const id of ROOM_IDS) gs.setFlag(`castle-room-${id}`, id === this.roomId);
 
     const config: BattleConfig = {
       playerTeam,
@@ -262,7 +327,8 @@ export class CastleRoomScene extends Phaser.Scene {
         const x = c * TILE_SIZE + TILE_SIZE / 2;
         const y = r * TILE_SIZE + TILE_SIZE / 2;
         const key = (r + c) % 2 === 0 ? 'tile-stone' : 'tile-stone-dark';
-        this.add.image(x, y, key);
+        const tile = this.add.image(x, y, key);
+        if (this.config.tint !== undefined) tile.setTint(this.config.tint);
       }
     }
   }
@@ -271,7 +337,8 @@ export class CastleRoomScene extends Phaser.Scene {
     const addWall = (c: number, r: number) => {
       const x = c * TILE_SIZE + TILE_SIZE / 2;
       const y = r * TILE_SIZE + TILE_SIZE / 2;
-      this.add.image(x, y, 'tile-stone-dark');
+      const wallImg = this.add.image(x, y, 'tile-stone-dark');
+      if (this.config.tint !== undefined) wallImg.setTint(this.config.tint);
       this.walls.add(
         this.physics.add.staticImage(x, y, 'tile-stone-dark')
           .setSize(TILE_SIZE, TILE_SIZE).refreshBody(),

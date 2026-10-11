@@ -4,6 +4,8 @@ export enum PetType {
   Wood,
   Water,
   Normal,
+  Light,
+  Shadow,
 }
 
 export interface IPetTemplate {
