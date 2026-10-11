@@ -721,16 +721,10 @@ export class BattleScene extends Phaser.Scene {
     }
 
     const target = this.manager.config.playerTeam[targetIndex];
-    let healAmount = 0;
-
-    if (item.itemType === ItemType.Food && item.healAmount) {
-      healAmount = item.healAmount;
-    } else if (item.itemType === ItemType.Potion && item.healPerTurn && item.healDuration) {
-      healAmount = item.healPerTurn * item.healDuration;
-    }
-
     const wasFainted = target.currentHp <= 0;
-    target.currentHp = Math.min(target.currentHp + healAmount, target.maxHp);
+    const hpBefore = target.currentHp;
+    target.currentHp = Math.min(target.currentHp + GameState.healAmountFor(itemId, target.maxHp), target.maxHp);
+    const healAmount = target.currentHp - hpBefore;
 
     // Bring a revived pet back onto the battlefield
     if (wasFainted && target.currentHp > 0) {

@@ -358,7 +358,17 @@ export class GameState {
 
   // ---- Healing items ----
 
-  /** Total HP an item restores, or 0 if it isn't a healing item. */
+  /** True if the item restores a pet to full HP (its fixed heal amount is then irrelevant). */
+  static healsFully(itemId: string): boolean {
+    return ITEMS[itemId]?.healsFully === true;
+  }
+
+  /** HP an item restores to a pet with the given max HP, or 0 if it isn't a healing item. */
+  static healAmountFor(itemId: string, maxHp: number): number {
+    return GameState.healsFully(itemId) ? maxHp : GameState.healAmountOf(itemId);
+  }
+
+  /** Fixed HP an item restores (0 for non-healing items and for full-heal items — see healAmountFor). */
   static healAmountOf(itemId: string): number {
     const item = ITEMS[itemId];
     if (!item) return 0;
@@ -372,7 +382,7 @@ export class GameState {
    * Returns the HP restored; 0 means nothing happened and no item was consumed.
    */
   healPetWithItem(pet: IPetInstance, itemId: string): number {
-    const amount = GameState.healAmountOf(itemId);
+    const amount = GameState.healAmountFor(itemId, pet.maxHp);
     if (amount <= 0 || pet.currentHp >= pet.maxHp) return 0;
     if (!this.removeItem(itemId, 1)) return 0;
     const before = pet.currentHp;

@@ -23,6 +23,8 @@ export interface IItem {
   description: string;
   buyPrice: number;
   healAmount?: number;
+  /** Food: restores the target pet to full HP regardless of its max. */
+  healsFully?: boolean;
   healPerTurn?: number;
   healDuration?: number;
   attackType?: PetType;

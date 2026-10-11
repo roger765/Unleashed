@@ -400,7 +400,7 @@ export class PetBookUI {
       const item = ITEMS[slot.itemId];
       add(new Button(
         this.scene, cx, top + 160 + i * 42,
-        `${item.name} x${slot.quantity}  (+${GameState.healAmountOf(slot.itemId)} HP)`,
+        `${item.name} x${slot.quantity}  (${GameState.healsFully(slot.itemId) ? 'full heal' : `+${GameState.healAmountOf(slot.itemId)} HP`})`,
         () => {
           const healed = gs.healPetWithItem(pet, slot.itemId);
           if (healed <= 0) {

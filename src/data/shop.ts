@@ -25,6 +25,7 @@ export const SHOP_ITEMS = [
   { itemId: 'umbral-cloak', category: 'Armor' },
   { itemId: 'health-potion', category: 'Healing' },
   { itemId: 'super-health-potion', category: 'Healing' },
+  { itemId: 'pet-food', category: 'Healing' },
   { itemId: 'apple', category: 'Food' },
   { itemId: 'feast', category: 'Food' },
   { itemId: 'light-charm-1', category: 'Charms' },

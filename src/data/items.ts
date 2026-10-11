@@ -81,6 +81,14 @@ export const ITEMS: Record<string, IItem> = {
     buyPrice: 15,
     healAmount: 100,
   },
+  'pet-food': {
+    id: 'pet-food',
+    name: 'Pet Food',
+    itemType: ItemType.Food,
+    description: 'Hearty kibble that fully restores a pet\'s HP.',
+    buyPrice: 5,
+    healsFully: true,
+  },
 
   // --- Armor Tier 1: Defense only (shop, cheap) ---
 

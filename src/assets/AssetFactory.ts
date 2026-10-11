@@ -2202,6 +2202,24 @@ export class AssetFactory {
       g.fillCircle(16, 16, 2);
       AssetFactory.finish(g, 'item-feast', S, S);
     }
+
+    // item-pet-food
+    {
+      const g = AssetFactory.gfx(scene);
+      // bowl
+      g.fillStyle(0x1e88e5);
+      g.fillRoundedRect(4, 18, 24, 10, 4);
+      g.fillStyle(0x1565c0);
+      g.fillRect(6, 26, 20, 2);
+      // kibble heap
+      g.fillStyle(0x8d6e63);
+      g.fillCircle(11, 17, 4);
+      g.fillCircle(17, 15, 4);
+      g.fillCircle(22, 17, 4);
+      g.fillStyle(0xa1887f);
+      g.fillCircle(16, 12, 3);
+      AssetFactory.finish(g, 'item-pet-food', S, S);
+    }
   }
 
   /** Draw a star polygon. */
