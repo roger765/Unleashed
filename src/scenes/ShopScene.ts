@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from '../constants';
 import { GameState } from '../state/GameState';
 import { ITEMS } from '../data/items';
-import { SHOP_ITEMS, TM_CATEGORIES } from '../data/shop';
+import { SHOP_ITEMS, TM_CATEGORIES, COINS_PER_SPIRIT } from '../data/shop';
 import { Button } from '../ui/Button';
 import { Toast } from '../ui/Toast';
 import { AudioManager } from '../audio/AudioManager';
@@ -43,6 +43,20 @@ export class ShopScene extends Phaser.Scene {
     const coinsText = this.add.text(cx, 155, `Coins: ${gs.getState().coins}`, {
       fontSize: '18px', fontFamily: 'Arial', color: '#ffd700',
     }).setOrigin(0.5);
+
+    // ── Spirit exchange ──────────────────────────────────────────
+    const spiritsText = this.add.text(cx + 150, 155, `Spirits: ${gs.getState().spirits}`, {
+      fontSize: '18px', fontFamily: 'Arial', color: '#c9a0ff',
+    }).setOrigin(0, 0.5);
+    new Button(this, cx + 400, 155, `Sell 1 Spirit (+${COINS_PER_SPIRIT})`, () => {
+      if (gs.exchangeSpiritsForCoins(1, COINS_PER_SPIRIT)) {
+        coinsText.setText(`Coins: ${gs.getState().coins}`);
+        spiritsText.setText(`Spirits: ${gs.getState().spirits}`);
+        Toast.show(this, `Sold 1 spirit for ${COINS_PER_SPIRIT} coins!`);
+      } else {
+        Toast.show(this, 'You have no spirits to sell!');
+      }
+    }, { width: 200, height: 30, fontSize: '13px', fillColor: 0x8e44ad });
 
     // ── Tab buttons ──────────────────────────────────────────────
     const tabs: TabKey[] = ['Weapons', 'Armour', 'Items', 'Charms', 'TMs'];

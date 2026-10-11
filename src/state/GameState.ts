@@ -130,6 +130,13 @@ export class GameState {
     return true;
   }
 
+  /** Trade spirits for coins. Returns false (and changes nothing) if the player lacks the spirits. */
+  exchangeSpiritsForCoins(spirits: number, coinsPerSpirit: number): boolean {
+    if (!this.removeSpirits(spirits)) return false;
+    this.addCoins(spirits * coinsPerSpirit);
+    return true;
+  }
+
   // ---- Inventory ----
 
   addItem(itemId: string, quantity: number): void {

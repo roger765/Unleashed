@@ -1,6 +1,9 @@
 import { PetType } from '../types/pet';
 import { MOVES, BOSS_MOVE_IDS } from './moves';
 
+/** Coins the shopkeeper pays for one spirit. */
+export const COINS_PER_SPIRIT = 10;
+
 export const SHOP_ITEMS = [
   { itemId: 'rock-hammer', category: 'Weapons' },
   { itemId: 'nature-wand', category: 'Weapons' },
