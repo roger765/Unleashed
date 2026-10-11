@@ -7,3 +7,4 @@ export const LEVEL_CAP = 50;
 export const TYPE_ADVANTAGE_MULTIPLIER = 1.5;
 export const TYPE_DISADVANTAGE_MULTIPLIER = 0.5;
 export const MAX_TEAM_SIZE = 4;
+export const MAX_PET_NAME_LENGTH = 16;

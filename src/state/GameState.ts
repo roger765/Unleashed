@@ -6,7 +6,7 @@ import { canPetLearnMove, getPetMoveSlots } from '../utils/petMoves';
 import { PetType } from '../types/pet';
 import { IPetInstance } from '../types/pet';
 import { IBattleCombatant } from '../types/battle';
-import { MAX_TEAM_SIZE, LEVEL_CAP } from '../constants';
+import { MAX_TEAM_SIZE, LEVEL_CAP, MAX_PET_NAME_LENGTH } from '../constants';
 import { XP_TABLE } from '../data/xp-table';
 import { PET_TEMPLATES } from '../data/pets';
 import { EVOLUTION_SPIRIT_COST, getEvolutionDef } from '../data/evolutions';
@@ -134,6 +134,15 @@ export class GameState {
   exchangeSpiritsForCoins(spirits: number, coinsPerSpirit: number): boolean {
     if (!this.removeSpirits(spirits)) return false;
     this.addCoins(spirits * coinsPerSpirit);
+    return true;
+  }
+
+  /** Set a pet's nickname (trimmed, capped at MAX_PET_NAME_LENGTH). Returns false if the result is empty. */
+  renamePet(pet: IPetInstance, name: string): boolean {
+    const clean = name.trim().slice(0, MAX_PET_NAME_LENGTH);
+    if (!clean) return false;
+    pet.nickname = clean;
+    this.schedulePersist();
     return true;
   }
 

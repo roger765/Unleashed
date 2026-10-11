@@ -1,6 +1,6 @@
 import { ITEMS } from '../data/items';
 import Phaser from 'phaser';
-import { SCREEN_WIDTH, SCREEN_HEIGHT, MAX_TEAM_SIZE } from '../constants';
+import { SCREEN_WIDTH, SCREEN_HEIGHT, MAX_TEAM_SIZE, MAX_PET_NAME_LENGTH } from '../constants';
 import { GameState } from '../state/GameState';
 import { EVOLUTION_SPIRIT_COST, getEvolutionDef } from '../data/evolutions';
 import { PET_TEMPLATES } from '../data/pets';
@@ -154,6 +154,15 @@ export class PetBookUI {
     add(this.scene.add.text(left + 100, top + 15, pet.nickname, {
       fontSize: '22px', fontFamily: 'Arial Black', color: '#ffd700',
     }));
+    add(new Button(this.scene, left + 440, top + 27, 'Rename', () => {
+      const input = window.prompt(`Name your ${template?.name ?? 'pet'} (max ${MAX_PET_NAME_LENGTH} characters):`, pet.nickname);
+      if (input === null) return; // cancelled
+      if (GameState.getInstance().renamePet(pet, input)) {
+        this.rebuildPanel();
+      } else {
+        Toast.show(this.scene, 'A pet needs a name!');
+      }
+    }, { width: 80, height: 28, fontSize: '13px', fillColor: 0x2c3e50 }));
     add(this.scene.add.text(left + 100, top + 45, `Level ${pet.level}  ·  ${PET_TYPE_NAMES[type]}`, {
       fontSize: '14px', fontFamily: 'Arial', color: PET_TYPE_COLORS[type],
     }));
