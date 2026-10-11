@@ -5,7 +5,7 @@ import { GameState } from '../state/GameState';
 import { EVOLUTION_SPIRIT_COST, getEvolutionDef } from '../data/evolutions';
 import { PET_TEMPLATES } from '../data/pets';
 import { MOVES } from '../data/moves';
-import { getPetMoveSlots, canPetLearnMove } from '../utils/petMoves';
+import { getPetMoveSlots, canPetLearnMove, getPetMoveAA, getMoveMaxAA, petNeedsFeeding } from '../utils/petMoves';
 import { ItemType } from '../types/item';
 import { IPetInstance, PetType } from '../types/pet';
 import { Panel } from './Panel';
@@ -198,7 +198,7 @@ export class PetBookUI {
             left + 10,
             top + 142 + i * 24,
             unlocked
-              ? `${move.name}  —  ${PET_TYPE_NAMES[move.type]}, power ${move.power}`
+              ? `${move.name}  —  ${PET_TYPE_NAMES[move.type]}, power ${move.power}, AA ${getPetMoveAA(pet, move)}/${getMoveMaxAA(move)}`
               : `${move.name}  —  unlocks at Lv ${unlockLevel}`,
             { fontSize: '13px', fontFamily: 'Arial', color: unlocked ? '#e0e0e0' : '#666666' },
           ));
@@ -208,7 +208,7 @@ export class PetBookUI {
 
     // Buttons
     const btnY = cy + 165;
-    const canHeal = pet.currentHp < pet.maxHp;
+    const canHeal = pet.currentHp < pet.maxHp || petNeedsFeeding(pet);
     const picking = this.detailPickingItem || this.detailPickingTm;
     if (!picking) {
       const playerLevel = GameState.getInstance().getState().level;
@@ -227,7 +227,7 @@ export class PetBookUI {
 
       add(new Button(this.scene, cx - 195, btnY, 'Use Item', () => {
         if (!canHeal) {
-          Toast.show(this.scene, `${pet.nickname} is already at full health.`);
+          Toast.show(this.scene, `${pet.nickname} is at full health with full AA.`);
           return;
         }
         this.detailPickingItem = true;
@@ -400,15 +400,16 @@ export class PetBookUI {
       const item = ITEMS[slot.itemId];
       add(new Button(
         this.scene, cx, top + 160 + i * 42,
-        `${item.name} x${slot.quantity}  (${GameState.healsFully(slot.itemId) ? 'full heal' : `+${GameState.healAmountOf(slot.itemId)} HP`})`,
+        `${item.name} x${slot.quantity}  (${GameState.healsFully(slot.itemId) ? 'full heal' : `+${GameState.healAmountOf(slot.itemId)} HP`}${item.refillsAA ? ' + AA' : ''})`,
         () => {
-          const healed = gs.healPetWithItem(pet, slot.itemId);
-          if (healed <= 0) {
-            Toast.show(this.scene, `${pet.nickname} is already at full health.`);
+          const { healed, aaRefilled } = gs.healPetWithItem(pet, slot.itemId);
+          if (healed <= 0 && !aaRefilled) {
+            Toast.show(this.scene, `${pet.nickname} doesn't need that right now.`);
           } else {
-            Toast.show(this.scene, `${pet.nickname} healed for ${healed} HP!`);
+            const parts = [healed > 0 ? `healed for ${healed} HP` : '', aaRefilled ? 'AA refilled' : ''];
+            Toast.show(this.scene, `${pet.nickname} ${parts.filter(Boolean).join(' and ')}!`);
           }
-          if (pet.currentHp >= pet.maxHp) this.detailPickingItem = false;
+          if (pet.currentHp >= pet.maxHp && !petNeedsFeeding(pet)) this.detailPickingItem = false;
           this.rebuildPanel();
         },
         { width: 380, height: 34, fontSize: '14px', fillColor: 0x27ae60 },

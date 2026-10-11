@@ -109,7 +109,9 @@ export function buildPlayerTeamFromState(state: IPlayerState): IBattleCombatant[
   const team: IBattleCombatant[] = [];
   team.push(createPlayerCombatant(state.name, state.level, state.equippedWeaponId, defenseBonus, hpBoostPercent, resistances, hpBoostFlat));
   for (let i = 0; i < state.team.length; i++) {
-    team.push(createPetCombatant(state.team[i], `pet-${i}`, defenseBonus, hpBoostPercent, resistances, hpBoostFlat));
+    const petCombatant = createPetCombatant(state.team[i], `pet-${i}`, defenseBonus, hpBoostPercent, resistances, hpBoostFlat);
+    petCombatant.limitedAA = true;
+    team.push(petCombatant);
   }
   return team;
 }

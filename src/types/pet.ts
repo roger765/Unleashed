@@ -39,4 +39,6 @@ export interface IPetInstance {
   defense: number;
   /** Per-pet move list, written when a TM is first used. Absent = use the species template's moves. */
   moves?: IPetMoveSlot[];
+  /** Attack Allowance: uses left per move id. A missing entry means the move is at full AA. */
+  aa?: Record<string, number>;
 }

@@ -25,6 +25,8 @@ export interface IItem {
   healAmount?: number;
   /** Food: restores the target pet to full HP regardless of its max. */
   healsFully?: boolean;
+  /** Food: also restores every move's Attack Allowance (AA) on the target pet. */
+  refillsAA?: boolean;
   healPerTurn?: number;
   healDuration?: number;
   attackType?: PetType;

@@ -6,6 +6,19 @@ export const BOSS_MOVE_IDS = [
   'grand-slam', 'tidal-crash', 'aqua-burst', 'arcane-blast',
 ];
 
+/**
+ * Always-available fallback for a pet with no AA left on any move. Deliberately not in MOVES
+ * so it never shows up as a TM, a learnable move or in the move showcase.
+ */
+export const STRUGGLE: IMove = {
+  id: 'struggle',
+  name: 'Struggle',
+  type: PetType.Normal,
+  category: AttackCategory.Direct,
+  power: 8,
+  description: 'A weak, desperate lunge. Feed your pet to restore its moves.',
+};
+
 export const MOVES: Record<string, IMove> = {
   // ── Normal (player starting moves) ──────────────────────────────
   'bash': {

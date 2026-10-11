@@ -2,7 +2,7 @@ import { IPlayerAppearance, IPlayerState } from '../types/player';
 import { ArmorSlot, ItemType } from '../types/item';
 import { ITEMS } from '../data/items';
 import { MOVES } from '../data/moves';
-import { canPetLearnMove, getPetMoveSlots } from '../utils/petMoves';
+import { canPetLearnMove, getPetMoveSlots, petNeedsFeeding, refillPetAA } from '../utils/petMoves';
 import { PetType } from '../types/pet';
 import { IPetInstance } from '../types/pet';
 import { IBattleCombatant } from '../types/battle';
@@ -379,17 +379,21 @@ export class GameState {
 
   /**
    * Use a healing item on a pet outside battle (also revives a fainted pet).
-   * Returns the HP restored; 0 means nothing happened and no item was consumed.
+   * Returns the HP restored and whether AA was refilled; if neither happened, no item was consumed.
    */
-  healPetWithItem(pet: IPetInstance, itemId: string): number {
+  healPetWithItem(pet: IPetInstance, itemId: string): { healed: number; aaRefilled: boolean } {
+    const none = { healed: 0, aaRefilled: false };
     const amount = GameState.healAmountFor(itemId, pet.maxHp);
-    if (amount <= 0 || pet.currentHp >= pet.maxHp) return 0;
-    if (!this.removeItem(itemId, 1)) return 0;
+    const canHeal = amount > 0 && pet.currentHp < pet.maxHp;
+    const canRefill = ITEMS[itemId]?.refillsAA === true && petNeedsFeeding(pet);
+    if (!canHeal && !canRefill) return none;
+    if (!this.removeItem(itemId, 1)) return none;
     const before = pet.currentHp;
-    pet.currentHp = Math.min(pet.maxHp, before + amount);
+    if (canHeal) pet.currentHp = Math.min(pet.maxHp, before + amount);
+    if (canRefill) refillPetAA(pet);
     EventBus.emit('team-changed', this.state.team);
     this.schedulePersist();
-    return pet.currentHp - before;
+    return { healed: pet.currentHp - before, aaRefilled: canRefill };
   }
 
   // ---- TMs ----
@@ -407,8 +411,10 @@ export class GameState {
     if (slotIndex < 0 || slotIndex >= slots.length) return 'Pick a move to replace.';
     if (slots.some((s) => s.id === move.id)) return `${pet.nickname} already knows ${move.name}.`;
     if (!this.removeItem(tmItemId, 1)) return 'You do not have that TM.';
+    const replacedId = slots[slotIndex].id;
     slots[slotIndex] = { id: move.id, level: 1 };
     pet.moves = slots;
+    if (pet.aa) delete pet.aa[replacedId]; // the new move starts at full AA
     EventBus.emit('team-changed', this.state.team);
     this.schedulePersist();
     return null;
