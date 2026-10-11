@@ -1,6 +1,6 @@
 import { ITEMS } from '../data/items';
 import Phaser from 'phaser';
-import { SCREEN_WIDTH, SCREEN_HEIGHT, MAX_TEAM_SIZE, MAX_PET_NAME_LENGTH } from '../constants';
+import { SCREEN_WIDTH, SCREEN_HEIGHT, MAX_TEAM_SIZE, MAX_PET_NAME_LENGTH, SPIRITS_PER_PET_LEVEL } from '../constants';
 import { GameState } from '../state/GameState';
 import { EVOLUTION_SPIRIT_COST, getEvolutionDef } from '../data/evolutions';
 import { PET_TEMPLATES } from '../data/pets';
@@ -211,6 +211,20 @@ export class PetBookUI {
     const canHeal = pet.currentHp < pet.maxHp;
     const picking = this.detailPickingItem || this.detailPickingTm;
     if (!picking) {
+      const playerLevel = GameState.getInstance().getState().level;
+      const canLevel = pet.level < playerLevel;
+      add(new Button(this.scene, cx - 105, btnY - 48, `Level Up to ${pet.level + 1}  (${SPIRITS_PER_PET_LEVEL} spirit)`, () => {
+        const result = GameState.getInstance().levelUpPetWithSpirits(pet);
+        if (result === 'at-player-level') {
+          Toast.show(this.scene, `${pet.nickname} can't pass your level (${playerLevel}).`);
+        } else if (result === 'no-spirits') {
+          Toast.show(this.scene, `Need ${SPIRITS_PER_PET_LEVEL} spirit to level up.`);
+        } else {
+          Toast.show(this.scene, `${pet.nickname} reached level ${pet.level}!`);
+          this.rebuildPanel();
+        }
+      }, { width: 260, height: 32, fontSize: '14px', fillColor: canLevel ? 0x27ae60 : 0x333333 }));
+
       add(new Button(this.scene, cx - 195, btnY, 'Use Item', () => {
         if (!canHeal) {
           Toast.show(this.scene, `${pet.nickname} is already at full health.`);

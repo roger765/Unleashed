@@ -8,3 +8,5 @@ export const TYPE_ADVANTAGE_MULTIPLIER = 1.5;
 export const TYPE_DISADVANTAGE_MULTIPLIER = 0.5;
 export const MAX_TEAM_SIZE = 4;
 export const MAX_PET_NAME_LENGTH = 16;
+/** Spirits spent to raise a pet one level (up to the player's level). */
+export const SPIRITS_PER_PET_LEVEL = 1;

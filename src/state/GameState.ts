@@ -6,7 +6,7 @@ import { canPetLearnMove, getPetMoveSlots } from '../utils/petMoves';
 import { PetType } from '../types/pet';
 import { IPetInstance } from '../types/pet';
 import { IBattleCombatant } from '../types/battle';
-import { MAX_TEAM_SIZE, LEVEL_CAP, MAX_PET_NAME_LENGTH } from '../constants';
+import { MAX_TEAM_SIZE, LEVEL_CAP, MAX_PET_NAME_LENGTH, SPIRITS_PER_PET_LEVEL } from '../constants';
 import { XP_TABLE } from '../data/xp-table';
 import { PET_TEMPLATES } from '../data/pets';
 import { EVOLUTION_SPIRIT_COST, getEvolutionDef } from '../data/evolutions';
@@ -450,6 +450,22 @@ export class GameState {
 
     this.schedulePersist();
     return levelled;
+  }
+
+  /**
+   * Spend spirits to raise a pet (team or storage) by one level, never above the player's level.
+   * XP is snapped to the new level's threshold so later XP gains stay consistent.
+   */
+  levelUpPetWithSpirits(pet: IPetInstance): 'ok' | 'at-player-level' | 'no-spirits' {
+    if (pet.level >= Math.min(this.state.level, LEVEL_CAP)) return 'at-player-level';
+    if (!this.removeSpirits(SPIRITS_PER_PET_LEVEL)) return 'no-spirits';
+
+    pet.level++;
+    pet.xp = Math.max(pet.xp, XP_TABLE[pet.level]);
+    recalcPetStats(pet); // keeps existing damage; no free heal
+    EventBus.emit('team-changed', this.state.team);
+    this.schedulePersist();
+    return 'ok';
   }
 
   /**
