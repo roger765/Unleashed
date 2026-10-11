@@ -1,8 +1,9 @@
 import { IPlayerAppearance, IPlayerState } from '../types/player';
-import { ArmorSlot } from '../types/item';
+import { ArmorSlot, ItemType } from '../types/item';
 import { ITEMS } from '../data/items';
 import { PetType } from '../types/pet';
 import { IPetInstance } from '../types/pet';
+import { IBattleCombatant } from '../types/battle';
 import { MAX_TEAM_SIZE, LEVEL_CAP } from '../constants';
 import { XP_TABLE } from '../data/xp-table';
 import { PET_TEMPLATES } from '../data/pets';
@@ -20,6 +21,7 @@ function defaultState(name: string, appearance: IPlayerAppearance): IPlayerState
     spirits: 0,
     equippedWeaponId: null,
     equippedArmor: { helmet: null, chest: null, boots: null },
+    equippedCharmId: null,
     team: [],
     storage: [],
     inventory: [],
@@ -40,7 +42,13 @@ function recalcPetStats(pet: IPetInstance): void {
   const template = PET_TEMPLATES[pet.templateId];
   if (!template) return;
 
+  const oldMaxHp = pet.maxHp;
   pet.maxHp = Math.floor(template.baseHp + pet.level * template.baseHp * 0.1);
+  // Damage is kept: a higher max HP raises current HP by the same amount, never a full heal.
+  // Fainted pets stay fainted.
+  if (pet.currentHp > 0) {
+    pet.currentHp = Math.min(pet.maxHp, pet.currentHp + Math.max(0, pet.maxHp - oldMaxHp));
+  }
   pet.attack = Math.floor(template.baseAttack + pet.level * template.baseAttack * 0.1);
   pet.defense = Math.floor(template.baseDefense + pet.level * template.baseDefense * 0.1);
 }
@@ -80,6 +88,10 @@ export class GameState {
     // Migrate saves that predate the armor system
     if (!state.equippedArmor) {
       state.equippedArmor = { helmet: null, chest: null, boots: null };
+    }
+    // Migrate saves that predate charms
+    if (state.equippedCharmId === undefined) {
+      state.equippedCharmId = null;
     }
     this.state = state;
   }
@@ -168,6 +180,41 @@ export class GameState {
     this.schedulePersist();
   }
 
+  equipCharm(itemId: string): void {
+    this.state.equippedCharmId = itemId;
+    this.schedulePersist();
+  }
+
+  unequipCharm(): void {
+    this.state.equippedCharmId = null;
+    this.schedulePersist();
+  }
+
+  /** Spawn-chance multiplier for a type from the equipped charm (1 if none/different type). */
+  getCharmSpawnMultiplier(type: PetType): number {
+    const id = this.state.equippedCharmId;
+    const item = id ? ITEMS[id] : undefined;
+    if (item && item.boostType === type) return item.spawnMultiplier ?? 1;
+    return 1;
+  }
+
+  /** Start a timed lure for a type. Re-using a lure refreshes the timer. */
+  activateLure(itemId: string): boolean {
+    const item = ITEMS[itemId];
+    if (!item || item.boostType === undefined || !item.lureDurationMs) return false;
+    this.state.counters[`lure-until-${item.boostType}`] = Date.now() + item.lureDurationMs;
+    this.state.counters[`lure-mult-${item.boostType}`] = item.spawnMultiplier ?? 1;
+    this.schedulePersist();
+    return true;
+  }
+
+  /** Spawn-chance multiplier for a type from an active lure (1 if expired). */
+  getLureSpawnMultiplier(type: PetType): number {
+    const until = this.state.counters[`lure-until-${type}`] ?? 0;
+    if (Date.now() >= until) return 1;
+    return this.state.counters[`lure-mult-${type}`] ?? 1;
+  }
+
   getTotalArmorDefenseBonus(): number {
     const armor = this.state.equippedArmor;
     const slots = [armor.helmet, armor.chest, armor.boots];
@@ -243,15 +290,25 @@ export class GameState {
   /**
    * Evolve a pet in-place (template + stats). Costs spirits. Returns false if not eligible or payment fails.
    */
+  /** Id of the evolution stone a pet needs, or null if its evolution needs only spirits. */
+  evolutionStoneFor(pet: IPetInstance): string | null {
+    const type = PET_TEMPLATES[pet.templateId]?.type;
+    if (type === PetType.Light) return 'light-stone';
+    if (type === PetType.Shadow) return 'shadow-stone';
+    return null;
+  }
+
   tryEvolvePet(pet: IPetInstance): boolean {
     const def = getEvolutionDef(pet.templateId);
     if (!def || pet.level < def.minLevel) return false;
     const next = PET_TEMPLATES[def.into];
     if (!next) return false;
+    const stoneId = this.evolutionStoneFor(pet);
+    if (stoneId && this.getItemCount(stoneId) < 1) return false;
     if (!this.removeSpirits(EVOLUTION_SPIRIT_COST)) return false;
+    if (stoneId) this.removeItem(stoneId, 1);
     pet.templateId = def.into;
     recalcPetStats(pet);
-    pet.currentHp = pet.maxHp;
     this.schedulePersist();
     return true;
   }
@@ -281,11 +338,57 @@ export class GameState {
     this.schedulePersist();
   }
 
+  // ---- Healing items ----
+
+  /** Total HP an item restores, or 0 if it isn't a healing item. */
+  static healAmountOf(itemId: string): number {
+    const item = ITEMS[itemId];
+    if (!item) return 0;
+    if (item.itemType === ItemType.Food) return item.healAmount ?? 0;
+    if (item.itemType === ItemType.Potion) return (item.healPerTurn ?? 0) * (item.healDuration ?? 0);
+    return 0;
+  }
+
+  /**
+   * Use a healing item on a pet outside battle (also revives a fainted pet).
+   * Returns the HP restored; 0 means nothing happened and no item was consumed.
+   */
+  healPetWithItem(pet: IPetInstance, itemId: string): number {
+    const amount = GameState.healAmountOf(itemId);
+    if (amount <= 0 || pet.currentHp >= pet.maxHp) return 0;
+    if (!this.removeItem(itemId, 1)) return 0;
+    const before = pet.currentHp;
+    pet.currentHp = Math.min(pet.maxHp, before + amount);
+    EventBus.emit('team-changed', this.state.team);
+    this.schedulePersist();
+    return pet.currentHp - before;
+  }
+
+  // ---- Battle HP persistence ----
+
+  /**
+   * Write battle damage back onto the saved team pets. Index 0 of the battle team is the
+   * player character; pets follow in team order. Combatant HP includes armour boosts, so
+   * it is converted back to the pet's own max HP by fraction.
+   */
+  syncPetHpFromBattle(battleTeam: IBattleCombatant[]): void {
+    for (let i = 1; i < battleTeam.length; i++) {
+      const pet = this.state.team[i - 1];
+      const c = battleTeam[i];
+      if (!pet || !c || c.maxHp <= 0) continue;
+      pet.currentHp = c.currentHp <= 0
+        ? 0
+        : Math.min(pet.maxHp, Math.max(1, Math.round((pet.maxHp * c.currentHp) / c.maxHp)));
+    }
+    EventBus.emit('team-changed', this.state.team);
+    this.schedulePersist();
+  }
+
   // ---- XP / Levelling ----
 
   /**
    * Add XP to a pet on the team. Returns true if the pet levelled up.
-   * On level-up: recalculate stats from template and heal to full HP.
+   * On level-up: recalculate stats from template (existing damage is kept).
    */
   addXpToPet(teamIndex: number, xp: number): boolean {
     const pet = this.state.team[teamIndex];
@@ -301,8 +404,7 @@ export class GameState {
     }
 
     if (levelled) {
-      recalcPetStats(pet);
-      pet.currentHp = pet.maxHp; // Heal to full on level-up
+      recalcPetStats(pet); // keeps existing damage; no free heal on level-up
       EventBus.emit('team-changed', this.state.team);
     }
 

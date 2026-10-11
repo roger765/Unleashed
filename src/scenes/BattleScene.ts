@@ -6,7 +6,6 @@ import { BattleManager, BattlePhase, BattleConfig } from '../battle/BattleManage
 import { playPetAttackAnimation } from '../battle/petAttackAnimations';
 import { getCaptureInfo, performCapture, CaptureInfo } from '../battle/CaptureManager';
 import { GameState } from '../state/GameState';
-import { PET_TEMPLATES } from '../data/pets';
 import { Button } from '../ui/Button';
 import { Panel } from '../ui/Panel';
 import { HealthBar } from '../ui/HealthBar';
@@ -27,6 +26,8 @@ const TYPE_COLORS: Record<number, number> = {
   2: 0x795548, // Wood
   3: 0x2196f3, // Water
   4: 0x9e9e9e, // Normal
+  5: 0xffd54f, // Light
+  6: 0x4a148c, // Shadow
 };
 
 const TYPE_COLOR_STR: Record<number, string> = {
@@ -35,6 +36,8 @@ const TYPE_COLOR_STR: Record<number, string> = {
   2: '#795548',
   3: '#2196F3',
   4: '#9E9E9E',
+  5: '#FFD54F',
+  6: '#4A148C',
 };
 
 interface SpriteEntry {
@@ -161,6 +164,12 @@ export class BattleScene extends Phaser.Scene {
       const hpBar = new HealthBar(this, x - 50, y + 70, 100, 12);
       hpBar.setHealth(c.currentHp, c.maxHp);
       hpBar.setDepth(2);
+
+      // Pets that fainted in an earlier battle start out of action
+      if (c.currentHp <= 0) {
+        sprite.setVisible(false);
+        nameText.setVisible(false);
+      }
 
       this.playerEntries.push({ sprite, hpBar, nameText, highlight, combatant: c });
     }
@@ -677,11 +686,10 @@ export class BattleScene extends Phaser.Scene {
     let btnIdx = 0;
     for (let i = 0; i < team.length; i++) {
       const c = team[i];
-      if (c.currentHp <= 0) continue;
 
       const btn = new Button(
         this, px, py + 35 + btnIdx * this.btnStep,
-        `${c.name} (${c.currentHp}/${c.maxHp})`,
+        c.currentHp <= 0 ? `${c.name} (fainted)` : `${c.name} (${c.currentHp}/${c.maxHp})`,
         () => this.useItem(itemId, i),
         { width: 350, height: this.btnH, fontSize: '14px', fillColor: 0x27ae60 },
       );
@@ -719,16 +727,18 @@ export class BattleScene extends Phaser.Scene {
       healAmount = item.healPerTurn * item.healDuration;
     }
 
+    const wasFainted = target.currentHp <= 0;
     target.currentHp = Math.min(target.currentHp + healAmount, target.maxHp);
 
-    // Also update the actual pet in GameState team
-    const state = gs.getState();
-    if (targetIndex > 0 && targetIndex - 1 < state.team.length) {
-      state.team[targetIndex - 1].currentHp = Math.min(
-        state.team[targetIndex - 1].currentHp + healAmount,
-        state.team[targetIndex - 1].maxHp,
-      );
+    // Bring a revived pet back onto the battlefield
+    if (wasFainted && target.currentHp > 0) {
+      const entry = this.playerEntries.find((e) => e.combatant === target);
+      entry?.sprite.setVisible(true);
+      entry?.nameText.setVisible(true);
     }
+
+    // Persist to the actual pet in GameState (damage is only ever undone by healing items)
+    gs.syncPetHpFromBattle(this.manager.config.playerTeam);
 
     this.updateAllHealthBars();
     this.clearActionContent();
@@ -760,6 +770,9 @@ export class BattleScene extends Phaser.Scene {
     // Overlay
     const overlay = this.add.rectangle(cx, cy, SCREEN_WIDTH, SCREEN_HEIGHT, 0x000000, 0.6).setDepth(200);
     this.actionContent.push(overlay);
+
+    // Damage taken carries over: save each pet's remaining HP before rewards are applied
+    GameState.getInstance().syncPetHpFromBattle(this.manager.config.playerTeam);
 
     if (won) {
       const title = this.add.text(cx, cy - 100, 'VICTORY!', {
@@ -908,15 +921,7 @@ export class BattleScene extends Phaser.Scene {
       }).setOrigin(0.5).setDepth(201);
       this.actionContent.push(title);
 
-      // Heal team on loss (health fully regenerates after battle per spec)
-      const gs = GameState.getInstance();
-      for (const pet of gs.getState().team) {
-        const template = PET_TEMPLATES[pet.templateId];
-        if (template) {
-          pet.currentHp = Math.floor(template.baseHp + pet.level * template.baseHp * 0.1);
-        }
-      }
-
+      // No free heal on loss: pets stay damaged until healed with a Feast, Apple or Health Potion
       const btn = new Button(this, cx, cy + 40, 'Return to Town', () => {
         this.scene.stop('UIScene');
         this.scene.start('TownScene');
@@ -946,12 +951,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private returnToWorld(): void {
-    // Heal all pets (health fully regenerates after battle)
     const gs = GameState.getInstance();
-    for (const pet of gs.getState().team) {
-      pet.currentHp = pet.maxHp;
-    }
-
     gs.autoSave();
 
     const returnScene = this.manager.config.returnScene;

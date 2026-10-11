@@ -1,8 +1,11 @@
+import { ITEMS } from '../data/items';
 import Phaser from 'phaser';
 import { SCREEN_WIDTH, SCREEN_HEIGHT, MAX_TEAM_SIZE } from '../constants';
 import { GameState } from '../state/GameState';
 import { EVOLUTION_SPIRIT_COST, getEvolutionDef } from '../data/evolutions';
 import { PET_TEMPLATES } from '../data/pets';
+import { MOVES } from '../data/moves';
+import { ItemType } from '../types/item';
 import { IPetInstance, PetType } from '../types/pet';
 import { Panel } from './Panel';
 import { Button } from './Button';
@@ -17,6 +20,8 @@ const PET_TYPE_NAMES: Record<PetType, string> = {
   [PetType.Wood]: 'Wood',
   [PetType.Water]: 'Water',
   [PetType.Normal]: 'Normal',
+  [PetType.Light]: 'Light',
+  [PetType.Shadow]: 'Shadow',
 };
 
 const PET_TYPE_COLORS: Record<PetType, string> = {
@@ -25,6 +30,8 @@ const PET_TYPE_COLORS: Record<PetType, string> = {
   [PetType.Wood]: '#a1887f',
   [PetType.Water]: '#64b5f6',
   [PetType.Normal]: '#e0e0e0',
+  [PetType.Light]: '#fff176',
+  [PetType.Shadow]: '#9575cd',
 };
 
 function petTypeForInstance(pet: IPetInstance): PetType {
@@ -56,6 +63,10 @@ export class PetBookUI {
   private selectedTeamSlot: number | null = null;
   /** Current page when browsing storage (unlimited length). */
   private storagePage = 0;
+  /** Pet whose detail card is open (team slot index, or null for a stored pet). */
+  private detailPet: IPetInstance | null = null;
+  private detailTeamSlot: number | null = null;
+  private detailPickingItem = false;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -91,7 +102,161 @@ export class PetBookUI {
   show(): void {
     this.selectedTeamSlot = null;
     this.storagePage = 0;
+    this.detailPet = null;
+    this.detailTeamSlot = null;
+    this.detailPickingItem = false;
     this.rebuildPanel();
+  }
+
+  private openDetail(pet: IPetInstance, teamSlot: number | null): void {
+    this.detailPet = pet;
+    this.detailTeamSlot = teamSlot;
+    this.detailPickingItem = false;
+    this.rebuildPanel();
+  }
+
+  private closeDetail(): void {
+    this.detailPet = null;
+    this.detailTeamSlot = null;
+    this.detailPickingItem = false;
+    this.rebuildPanel();
+  }
+
+  /** Detail card: level, HP, moves, and a Use Item button for healing. */
+  private addDetail(pet: IPetInstance): void {
+    const cx = SCREEN_WIDTH / 2;
+    const cy = SCREEN_HEIGHT / 2;
+    const add = <T extends Phaser.GameObjects.GameObject>(o: T): T => { this.container.add(o); return o; };
+
+    const block = this.scene.add.rectangle(cx, cy, SCREEN_WIDTH, SCREEN_HEIGHT, 0x000000, 0.5);
+    block.setInteractive();
+    add(block);
+    add(new Panel(this.scene, cx, cy, 520, 400, { fillColor: 0x161b22, borderColor: 0xffd700 }));
+
+    const template = PET_TEMPLATES[pet.templateId];
+    const type = petTypeForInstance(pet);
+    const left = cx - 235;
+    const top = cy - 180;
+
+    add(this.scene.add.image(left + 40, top + 50, pet.templateId).setScale(2.5));
+    add(this.scene.add.text(left + 100, top + 15, pet.nickname, {
+      fontSize: '22px', fontFamily: 'Arial Black', color: '#ffd700',
+    }));
+    add(this.scene.add.text(left + 100, top + 45, `Level ${pet.level}  ·  ${PET_TYPE_NAMES[type]}`, {
+      fontSize: '14px', fontFamily: 'Arial', color: PET_TYPE_COLORS[type],
+    }));
+
+    // HP bar
+    const fraction = pet.maxHp > 0 ? Math.max(0, Math.min(1, pet.currentHp / pet.maxHp)) : 0;
+    const barW = 260;
+    const barY = top + 82;
+    add(this.scene.add.rectangle(left + 100 + barW / 2, barY, barW, 14, 0x333333));
+    const fill = fraction > 0.5 ? 0x4caf50 : fraction > 0.25 ? 0xff9800 : 0xe53935;
+    if (fraction > 0) add(this.scene.add.rectangle(left + 100 + (barW * fraction) / 2, barY, barW * fraction, 14, fill));
+    add(this.scene.add.text(left + 100 + barW + 10, barY, pet.currentHp <= 0 ? 'Fainted' : `${pet.currentHp}/${pet.maxHp} HP`, {
+      fontSize: '13px', fontFamily: 'Arial', color: pet.currentHp <= 0 ? '#e53935' : '#ffffff',
+    }).setOrigin(0, 0.5));
+
+    if (this.detailPickingItem) {
+      this.addDetailItemPicker(pet, add);
+    } else {
+      add(this.scene.add.text(left, top + 115, 'Moves', {
+        fontSize: '16px', fontFamily: 'Arial Black', color: '#ffffff',
+      }));
+      if (template) {
+        for (let i = 0; i < template.moveIds.length; i++) {
+          const move = MOVES[template.moveIds[i]];
+          const unlockLevel = template.moveLevels[i];
+          if (!move) continue;
+          const unlocked = pet.level >= unlockLevel;
+          add(this.scene.add.text(
+            left + 10,
+            top + 142 + i * 24,
+            unlocked
+              ? `${move.name}  —  ${PET_TYPE_NAMES[move.type]}, power ${move.power}`
+              : `${move.name}  —  unlocks at Lv ${unlockLevel}`,
+            { fontSize: '13px', fontFamily: 'Arial', color: unlocked ? '#e0e0e0' : '#666666' },
+          ));
+        }
+      }
+    }
+
+    // Buttons
+    const btnY = cy + 165;
+    const canHeal = pet.currentHp < pet.maxHp;
+    if (!this.detailPickingItem) {
+      const useBtn = new Button(this.scene, cx - 150, btnY, 'Use Item', () => {
+        if (!canHeal) {
+          Toast.show(this.scene, `${pet.nickname} is already at full health.`);
+          return;
+        }
+        this.detailPickingItem = true;
+        this.rebuildPanel();
+      }, { width: 130, height: 36, fontSize: '14px', fillColor: canHeal ? 0x8e44ad : 0x333333 });
+      add(useBtn);
+
+      if (this.detailTeamSlot !== null) {
+        const slot = this.detailTeamSlot;
+        add(new Button(this.scene, cx, btnY, 'Select to Swap', () => {
+          this.selectedTeamSlot = this.selectedTeamSlot === slot ? null : slot;
+          this.closeDetail();
+        }, { width: 140, height: 36, fontSize: '13px', fillColor: 0x2c3e50 }));
+      }
+    }
+    add(new Button(this.scene, cx + 150, btnY, this.detailPickingItem ? 'Back' : 'Close', () => {
+      if (this.detailPickingItem) {
+        this.detailPickingItem = false;
+        this.rebuildPanel();
+      } else {
+        this.closeDetail();
+      }
+    }, { width: 110, height: 36, fontSize: '14px', fillColor: 0xc0392b }));
+  }
+
+  private addDetailItemPicker(
+    pet: IPetInstance,
+    add: <T extends Phaser.GameObjects.GameObject>(o: T) => T,
+  ): void {
+    const gs = GameState.getInstance();
+    const cx = SCREEN_WIDTH / 2;
+    const cy = SCREEN_HEIGHT / 2;
+    const left = cx - 235;
+    const top = cy - 180;
+
+    add(this.scene.add.text(left, top + 115, 'Use which item?', {
+      fontSize: '16px', fontFamily: 'Arial Black', color: '#ffffff',
+    }));
+
+    const usable = gs.getState().inventory.filter((slot) => {
+      const item = ITEMS[slot.itemId];
+      return item && slot.quantity > 0 && (item.itemType === ItemType.Food || item.itemType === ItemType.Potion);
+    });
+
+    if (usable.length === 0) {
+      add(this.scene.add.text(cx, cy, 'No healing items. Buy Apples, Feasts or Health Potions in the shop.', {
+        fontSize: '13px', fontFamily: 'Arial', color: '#aaaaaa', wordWrap: { width: 440 }, align: 'center',
+      }).setOrigin(0.5));
+      return;
+    }
+
+    usable.slice(0, 5).forEach((slot, i) => {
+      const item = ITEMS[slot.itemId];
+      add(new Button(
+        this.scene, cx, top + 160 + i * 42,
+        `${item.name} x${slot.quantity}  (+${GameState.healAmountOf(slot.itemId)} HP)`,
+        () => {
+          const healed = gs.healPetWithItem(pet, slot.itemId);
+          if (healed <= 0) {
+            Toast.show(this.scene, `${pet.nickname} is already at full health.`);
+          } else {
+            Toast.show(this.scene, `${pet.nickname} healed for ${healed} HP!`);
+          }
+          if (pet.currentHp >= pet.maxHp) this.detailPickingItem = false;
+          this.rebuildPanel();
+        },
+        { width: 380, height: 34, fontSize: '14px', fillColor: 0x27ae60 },
+      ));
+    });
   }
 
   /** Rebuild pet book UI without clearing team-slot selection (e.g. after picking a slot). */
@@ -138,10 +303,7 @@ export class PetBookUI {
 
         const sprite = this.scene.add.image(x, y, pet.templateId).setScale(2);
         sprite.setInteractive({ useHandCursor: true });
-        sprite.on('pointerdown', () => {
-          this.selectedTeamSlot = this.selectedTeamSlot === i ? null : i;
-          this.rebuildPanel();
-        });
+        sprite.on('pointerdown', () => this.openDetail(pet, i));
         this.container.add(sprite);
 
         const pt = petTypeForInstance(pet);
@@ -182,6 +344,11 @@ export class PetBookUI {
               () => {
                 if (!canPay) {
                   Toast.show(this.scene, `Need ${EVOLUTION_SPIRIT_COST} spirits to evolve.`);
+                  return;
+                }
+                const stoneId = gs.evolutionStoneFor(pet);
+                if (stoneId && gs.getItemCount(stoneId) < 1) {
+                  Toast.show(this.scene, `Needs a ${ITEMS[stoneId]?.name ?? 'stone'} (sold in the shop).`);
                   return;
                 }
                 if (!gs.evolvePetOnTeam(i)) {
@@ -234,6 +401,8 @@ export class PetBookUI {
         const y = cy + 58 + Math.floor(slot / 4) * STORAGE_ROW_PITCH;
 
         const sprite = this.scene.add.image(x, y, pet.templateId).setScale(1.5);
+        sprite.setInteractive({ useHandCursor: true });
+        sprite.on('pointerdown', () => this.openDetail(pet, null));
         this.container.add(sprite);
 
         const st = petTypeForInstance(pet);
@@ -304,6 +473,11 @@ export class PetBookUI {
                   Toast.show(this.scene, `Need ${EVOLUTION_SPIRIT_COST} spirits to evolve.`);
                   return;
                 }
+                const stoneId = gs.evolutionStoneFor(pet);
+                if (stoneId && gs.getItemCount(stoneId) < 1) {
+                  Toast.show(this.scene, `Needs a ${ITEMS[stoneId]?.name ?? 'stone'} (sold in the shop).`);
+                  return;
+                }
                 if (!gs.evolvePetInStorage(absIdx)) {
                   Toast.show(this.scene, 'Could not evolve.');
                   return;
@@ -359,5 +533,8 @@ export class PetBookUI {
         this.container.add(nextBtn);
       }
     }
+
+    // Detail card sits on top of everything else
+    if (this.detailPet) this.addDetail(this.detailPet);
   }
 }

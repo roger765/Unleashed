@@ -6,6 +6,7 @@ import { MOVES } from '../data/moves';
 import { PET_TEMPLATES } from '../data/pets';
 import { ITEMS } from '../data/items';
 import { GameState } from '../state/GameState';
+import { ALL_PET_TYPES } from '../utils/math';
 
 export function createPetCombatant(
   pet: IPetInstance,
@@ -27,13 +28,17 @@ export function createPetCombatant(
   }
 
   const hpMult = 1 + hpBoostPercent / 100;
+  const maxHp = Math.floor(pet.maxHp * hpMult) + hpBoostFlat;
+  // Damage persists between battles, so carry the pet's remaining HP as a fraction of max.
+  const hpFraction = pet.maxHp > 0 ? Math.min(1, Math.max(0, pet.currentHp / pet.maxHp)) : 1;
+  const currentHp = pet.currentHp <= 0 ? 0 : Math.max(1, Math.round(maxHp * hpFraction));
   return {
     id,
     name: pet.nickname,
     isPlayer: false,
     pet,
-    currentHp: Math.floor(pet.currentHp * hpMult) + hpBoostFlat,
-    maxHp: Math.floor(pet.maxHp * hpMult) + hpBoostFlat,
+    currentHp,
+    maxHp,
     attack: pet.attack,
     defense: pet.defense + defenseBonus,
     type: template?.type ?? PetType.Normal,
@@ -98,8 +103,7 @@ export function buildPlayerTeamFromState(state: IPlayerState): IBattleCombatant[
   const hpBoostFlat = championSet ? 300 : 0;
   const resistances = { ...baseResistances };
   if (championSet) {
-    const allTypes: PetType[] = [PetType.Rock, PetType.Nature, PetType.Wood, PetType.Water, PetType.Normal];
-    for (const type of allTypes) {
+    for (const type of ALL_PET_TYPES) {
       resistances[type] = Math.min(75, (resistances[type] ?? 0) + 20);
     }
   }
