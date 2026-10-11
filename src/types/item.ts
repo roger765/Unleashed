@@ -11,6 +11,7 @@ export enum ItemType {
   Charm,
   Lure,
   EvoStone,
+  TM,
 }
 
 export type ArmorSlot = 'helmet' | 'chest' | 'boots';
@@ -38,4 +39,6 @@ export interface IItem {
   lureDurationMs?: number;
   /** EvoStone: which type of pet it can evolve. */
   stoneType?: PetType;
+  /** TM: the move this item teaches. */
+  teachMoveId?: string;
 }

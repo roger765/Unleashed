@@ -1,3 +1,6 @@
+import { PetType } from '../types/pet';
+import { MOVES, BOSS_MOVE_IDS } from './moves';
+
 export const SHOP_ITEMS = [
   { itemId: 'rock-hammer', category: 'Weapons' },
   { itemId: 'nature-wand', category: 'Weapons' },
@@ -32,3 +35,15 @@ export const SHOP_ITEMS = [
   { itemId: 'light-stone', category: 'Stones' },
   { itemId: 'shadow-stone', category: 'Stones' },
 ];
+
+// ── TMs: one per move, grouped by move type (boss specials separate) ──
+const TM_TYPE_NAMES: Record<number, string> = {
+  [PetType.Normal]: 'Normal', [PetType.Rock]: 'Rock', [PetType.Nature]: 'Nature',
+  [PetType.Wood]: 'Wood', [PetType.Water]: 'Water', [PetType.Light]: 'Light', [PetType.Shadow]: 'Shadow',
+};
+export const TM_CATEGORIES = [...Object.values(TM_TYPE_NAMES), 'Boss'].map((n) => `TM ${n}`);
+
+for (const move of Object.values(MOVES)) {
+  const group = BOSS_MOVE_IDS.includes(move.id) ? 'Boss' : TM_TYPE_NAMES[move.type];
+  SHOP_ITEMS.push({ itemId: `tm-${move.id}`, category: `TM ${group}` });
+}

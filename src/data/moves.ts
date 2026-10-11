@@ -1,5 +1,11 @@
 import { IMove, AttackCategory, PetType } from '../types';
 
+/** Boss-only specials (priced much higher as TMs). */
+export const BOSS_MOVE_IDS = [
+  'holy-nova', 'sunburst', 'void-crush', 'eclipse', 'thorn-barrage',
+  'grand-slam', 'tidal-crash', 'aqua-burst', 'arcane-blast',
+];
+
 export const MOVES: Record<string, IMove> = {
   // ── Normal (player starting moves) ──────────────────────────────
   'bash': {

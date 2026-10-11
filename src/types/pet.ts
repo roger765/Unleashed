@@ -22,6 +22,12 @@ export interface IPetTemplate {
   description: string;
 }
 
+/** One move slot on a pet; `level` is the pet level at which it becomes usable. */
+export interface IPetMoveSlot {
+  id: string;
+  level: number;
+}
+
 export interface IPetInstance {
   templateId: string;
   nickname: string;
@@ -31,4 +37,6 @@ export interface IPetInstance {
   xp: number;
   attack: number;
   defense: number;
+  /** Per-pet move list, written when a TM is first used. Absent = use the species template's moves. */
+  moves?: IPetMoveSlot[];
 }

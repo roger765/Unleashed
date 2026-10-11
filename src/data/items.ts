@@ -1,4 +1,5 @@
 import { IItem, ItemType, PetType } from '../types';
+import { MOVES, BOSS_MOVE_IDS } from './moves';
 
 export const ITEMS: Record<string, IItem> = {
   'star-staff': {
@@ -341,3 +342,17 @@ export const ITEMS: Record<string, IItem> = {
     stoneType: PetType.Shadow,
   },
 };
+
+// ── TMs: one single-use item per move, generated from the move table ──
+for (const move of Object.values(MOVES)) {
+  const isBoss = BOSS_MOVE_IDS.includes(move.id);
+  const buyPrice = isBoss ? 500 : Math.max(100, Math.round((move.power * 8) / 10) * 10);
+  ITEMS[`tm-${move.id}`] = {
+    id: `tm-${move.id}`,
+    name: `TM: ${move.name}`,
+    itemType: ItemType.TM,
+    description: `Teaches ${move.name} (power ${move.power}). Single use.`,
+    buyPrice,
+    teachMoveId: move.id,
+  };
+}

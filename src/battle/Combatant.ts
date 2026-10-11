@@ -5,6 +5,7 @@ import { IMove } from '../types/move';
 import { MOVES } from '../data/moves';
 import { PET_TEMPLATES } from '../data/pets';
 import { ITEMS } from '../data/items';
+import { getPetMoveSlots } from '../utils/petMoves';
 import { GameState } from '../state/GameState';
 import { ALL_PET_TYPES } from '../utils/math';
 
@@ -16,14 +17,11 @@ export function createPetCombatant(
   resistances: Partial<Record<PetType, number>> = {},
   hpBoostFlat = 0,
 ): IBattleCombatant {
-  const template = PET_TEMPLATES[pet.templateId];
   const moves: IMove[] = [];
-  if (template) {
-    for (let i = 0; i < template.moveIds.length; i++) {
-      if (pet.level >= template.moveLevels[i]) {
-        const move = MOVES[template.moveIds[i]];
-        if (move) moves.push(move);
-      }
+  for (const slot of getPetMoveSlots(pet)) {
+    if (pet.level >= slot.level) {
+      const move = MOVES[slot.id];
+      if (move) moves.push(move);
     }
   }
 
@@ -41,7 +39,7 @@ export function createPetCombatant(
     maxHp,
     attack: pet.attack,
     defense: pet.defense + defenseBonus,
-    type: template?.type ?? PetType.Normal,
+    type: PET_TEMPLATES[pet.templateId]?.type ?? PetType.Normal,
     moves,
     statusEffects: [],
     resistances,

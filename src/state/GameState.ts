@@ -1,6 +1,8 @@
 import { IPlayerAppearance, IPlayerState } from '../types/player';
 import { ArmorSlot, ItemType } from '../types/item';
 import { ITEMS } from '../data/items';
+import { MOVES } from '../data/moves';
+import { canPetLearnMove, getPetMoveSlots } from '../utils/petMoves';
 import { PetType } from '../types/pet';
 import { IPetInstance } from '../types/pet';
 import { IBattleCombatant } from '../types/battle';
@@ -362,6 +364,28 @@ export class GameState {
     EventBus.emit('team-changed', this.state.team);
     this.schedulePersist();
     return pet.currentHp - before;
+  }
+
+  // ---- TMs ----
+
+  /**
+   * Teach a pet the move from a TM, replacing the move in `slotIndex`. Consumes the TM.
+   * Returns an error message, or null on success.
+   */
+  teachMove(pet: IPetInstance, tmItemId: string, slotIndex: number): string | null {
+    const moveId = ITEMS[tmItemId]?.teachMoveId;
+    const move = moveId ? MOVES[moveId] : undefined;
+    if (!move) return 'That is not a TM.';
+    if (!canPetLearnMove(pet, move)) return `${pet.nickname} cannot learn ${move.name}.`;
+    const slots = getPetMoveSlots(pet).map((s) => ({ ...s }));
+    if (slotIndex < 0 || slotIndex >= slots.length) return 'Pick a move to replace.';
+    if (slots.some((s) => s.id === move.id)) return `${pet.nickname} already knows ${move.name}.`;
+    if (!this.removeItem(tmItemId, 1)) return 'You do not have that TM.';
+    slots[slotIndex] = { id: move.id, level: 1 };
+    pet.moves = slots;
+    EventBus.emit('team-changed', this.state.team);
+    this.schedulePersist();
+    return null;
   }
 
   // ---- Battle HP persistence ----
