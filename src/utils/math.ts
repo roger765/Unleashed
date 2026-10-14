@@ -43,12 +43,18 @@ export function rollMiss(): boolean {
  *   Reverse direction = 0.5x
  *   Same type or Normal involved = 1.0x
  *   Light <-> Shadow: each hits the other for 1.5x; both are neutral to the four elements.
+ *   Fire  > Ice, Nature, Wood
+ *   Ice   > Water, Nature, Wood
+ *   Water > Fire (as well as Rock), Rock > Fire, Ice (as well as Wood)
+ *   Fire and Ice are neutral to Light and Shadow.
  */
 const advantageMap: Record<PetType, PetType[]> = {
   [PetType.Nature]: [PetType.Water],
-  [PetType.Water]: [PetType.Rock],
-  [PetType.Rock]: [PetType.Wood],
+  [PetType.Water]: [PetType.Rock, PetType.Fire],
+  [PetType.Rock]: [PetType.Wood, PetType.Fire, PetType.Ice],
   [PetType.Wood]: [PetType.Nature],
+  [PetType.Fire]: [PetType.Ice, PetType.Nature, PetType.Wood],
+  [PetType.Ice]: [PetType.Water, PetType.Nature, PetType.Wood],
   [PetType.Normal]: [], // Normal has no advantage
   [PetType.Light]: [PetType.Shadow],
   [PetType.Shadow]: [PetType.Light],
@@ -63,6 +69,8 @@ export const ALL_PET_TYPES: PetType[] = [
   PetType.Normal,
   PetType.Light,
   PetType.Shadow,
+  PetType.Fire,
+  PetType.Ice,
 ];
 
 export const PET_TYPE_LABELS: Record<PetType, string> = {
@@ -73,6 +81,8 @@ export const PET_TYPE_LABELS: Record<PetType, string> = {
   [PetType.Normal]: 'Normal',
   [PetType.Light]: 'Light',
   [PetType.Shadow]: 'Shadow',
+  [PetType.Fire]: 'Fire',
+  [PetType.Ice]: 'Ice',
 };
 
 export function getTypeEffectiveness(

@@ -44,6 +44,7 @@ export const SHOP_ITEMS = [
 const TM_TYPE_NAMES: Record<number, string> = {
   [PetType.Normal]: 'Normal', [PetType.Rock]: 'Rock', [PetType.Nature]: 'Nature',
   [PetType.Wood]: 'Wood', [PetType.Water]: 'Water', [PetType.Light]: 'Light', [PetType.Shadow]: 'Shadow',
+  [PetType.Fire]: 'Fire', [PetType.Ice]: 'Ice',
 };
 export const TM_CATEGORIES = [...Object.values(TM_TYPE_NAMES), 'Boss'].map((n) => `TM ${n}`);
 

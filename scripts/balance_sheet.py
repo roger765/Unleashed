@@ -35,11 +35,11 @@ DATA = ROOT / "src" / "data"
 FILES = {k: DATA / f"{k}.ts" for k in ("moves", "pets", "items", "bosses")}
 DEFAULT_XLSX = ROOT / "attack-list-full.xlsx"
 
-TYPES = ["Normal", "Rock", "Nature", "Wood", "Water", "Light", "Shadow"]
+TYPES = ["Normal", "Rock", "Nature", "Wood", "Water", "Light", "Shadow", "Fire", "Ice"]
 CATEGORIES = ["Direct", "Ranged", "Chance"]
 RARITIES = ["common", "uncommon", "rare"]
 COLOURS = {"Normal": "9E9E9E", "Rock": "78909C", "Nature": "4CAF50", "Wood": "795548",
-           "Water": "2196F3", "Light": "FFD54F", "Shadow": "4A148C"}
+           "Water": "2196F3", "Light": "FFD54F", "Shadow": "4A148C", "Fire": "E64A19", "Ice": "4DD0E1"}
 LIGHT_TEXT = {"Light"}  # types whose fill is bright enough to need dark text
 
 # Top-level entries in these files are indented two spaces: `  'key': {` or `  key: {`.

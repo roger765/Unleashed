@@ -10,14 +10,16 @@ import { playHitEffect } from '../fx/HitEffect';
 const TYPE_NAMES: Record<number, string> = {
   [PetType.Rock]: 'Rock', [PetType.Nature]: 'Nature', [PetType.Wood]: 'Wood',
   [PetType.Water]: 'Water', [PetType.Normal]: 'Normal', [PetType.Light]: 'Light',
-  [PetType.Shadow]: 'Shadow',
+  [PetType.Shadow]: 'Shadow', [PetType.Fire]: 'Fire', [PetType.Ice]: 'Ice',
 };
 const ATTACKER_TEX: Record<number, string> = {
   [PetType.Rock]: 'gravel', [PetType.Nature]: 'leaf', [PetType.Wood]: 'twig',
   [PetType.Water]: 'wave', [PetType.Normal]: 'player', [PetType.Light]: 'glimmer',
   [PetType.Shadow]: 'gloam',
+  // Placeholders until the Fire and Ice pet sprites exist (Phase 3).
+  [PetType.Fire]: 'glimmer', [PetType.Ice]: 'wave',
 };
-const ORDER = [PetType.Normal, PetType.Rock, PetType.Nature, PetType.Wood, PetType.Water, PetType.Light, PetType.Shadow];
+const ORDER = [PetType.Normal, PetType.Rock, PetType.Nature, PetType.Wood, PetType.Water, PetType.Light, PetType.Shadow, PetType.Fire, PetType.Ice];
 
 /** Dev-only: plays every move's animation in sequence (open the game with ?showcase). */
 export class MoveShowcaseScene extends Phaser.Scene {

@@ -35,6 +35,8 @@ export const TYPE_FX_COLOR: Record<number, number> = {
   [PetType.Normal]: 0xffffff,
   [PetType.Light]: 0xffe680,
   [PetType.Shadow]: 0xa030f0,
+  [PetType.Fire]: 0xff6a2a,
+  [PetType.Ice]: 0x9fe8ff,
 };
 
 const DEPTH = 500;
