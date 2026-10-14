@@ -313,6 +313,8 @@ export class GameState {
     const type = PET_TEMPLATES[pet.templateId]?.type;
     if (type === PetType.Light) return 'light-stone';
     if (type === PetType.Shadow) return 'shadow-stone';
+    if (type === PetType.Fire) return 'fire-stone';
+    if (type === PetType.Ice) return 'ice-stone';
     return null;
   }
 
