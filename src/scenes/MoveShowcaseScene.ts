@@ -16,8 +16,7 @@ const ATTACKER_TEX: Record<number, string> = {
   [PetType.Rock]: 'gravel', [PetType.Nature]: 'leaf', [PetType.Wood]: 'twig',
   [PetType.Water]: 'wave', [PetType.Normal]: 'player', [PetType.Light]: 'glimmer',
   [PetType.Shadow]: 'gloam',
-  // Placeholders until the Fire and Ice pet sprites exist (Phase 3).
-  [PetType.Fire]: 'glimmer', [PetType.Ice]: 'wave',
+  [PetType.Fire]: 'cinder', [PetType.Ice]: 'flurry',
 };
 const ORDER = [PetType.Normal, PetType.Rock, PetType.Nature, PetType.Wood, PetType.Water, PetType.Light, PetType.Shadow, PetType.Fire, PetType.Ice];
 

@@ -122,6 +122,27 @@ const PET_ATTACK_RECIPES: Record<string, PetAttackRecipe> = {
   shade: R(0.78, -8, 6, 0.13, 2, 0.24, 312),
   murkfang: R(0.95, 4, 13, 0.09, 6, 0.13, 262),
   eclipsor: R(1.03, -2, 21, 0.05, 5, 0.08, 244),
+  // Fire pets: aggressive lunges, hot and quick
+  cinder: R(0.9, 5, 9, 0.12, 10, 0.14, 262),
+  ashwing: R(0.97, -4, 15, 0.09, 11, 0.11, 250),
+  kindle: R(0.93, 6, 12, 0.11, 8, 0.13, 258),
+  blazeling: R(1.0, -5, 18, 0.08, 9, 0.1, 246),
+  magmite: R(0.82, -7, 6, 0.12, 3, 0.21, 300),
+  calderon: R(0.78, 8, -9, 0.1, 3, 0.24, 312),
+  insinerix: R(0.91, -8, 13, 0.1, 13, 0.14, 264),
+  phoenyx: R(1.01, 4, 19, 0.07, 14, 0.09, 248),
+  infernal: R(1.04, -3, 21, 0.06, 6, 0.08, 242),
+  steamwyrm: R(1.03, -4, 20, 0.06, 6, 0.08, 244),
+  // Ice pets: slower, sliding, heavy
+  flurry: R(0.8, 7, -6, 0.13, 8, 0.2, 296),
+  blizzard: R(0.9, -6, 10, 0.1, 7, 0.15, 276),
+  frostix: R(0.92, 4, 11, 0.1, 5, 0.14, 266),
+  mammothox: R(0.84, -5, -8, 0.09, 3, 0.22, 304),
+  glacet: R(0.78, 9, -10, 0.12, 5, 0.23, 308),
+  glaciarch: R(0.86, -3, 8, 0.08, 4, 0.19, 290),
+  snowhare: R(0.95, -9, 12, 0.11, 13, 0.12, 258),
+  whitewind: R(1.0, 6, 17, 0.08, 12, 0.1, 250),
+  permafrost: R(0.82, -2, -4, 0.07, 2, 0.25, 318),
 };
 
 for (const id of Object.keys(PET_TEMPLATES)) {

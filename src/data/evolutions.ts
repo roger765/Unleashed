@@ -35,6 +35,16 @@ export const PET_EVOLUTION: Record<string, { into: string; minLevel: number }> =
   // Rares → tier 1 (Lv 25) — obsidian & tsunami excluded
   flora: { into: 'edenguard', minLevel: 25 },
   ironwood: { into: 'adamantbark', minLevel: 25 },
+  // Fire / Ice commons → tier 1 (Lv 15)
+  cinder: { into: 'ashwing', minLevel: 15 },
+  kindle: { into: 'blazeling', minLevel: 15 },
+  flurry: { into: 'blizzard', minLevel: 15 },
+  frostix: { into: 'mammothox', minLevel: 15 },
+  // Fire / Ice uncommons → tier 1 (Lv 20)
+  magmite: { into: 'calderon', minLevel: 20 },
+  insinerix: { into: 'phoenyx', minLevel: 20 },
+  glacet: { into: 'glaciarch', minLevel: 20 },
+  snowhare: { into: 'whitewind', minLevel: 20 },
   // Tier 1 (common evos) → tier 2 (Lv 28)
   monolith: { into: 'megalith', minLevel: 28 },
   tumbler: { into: 'rockslide', minLevel: 28 },
