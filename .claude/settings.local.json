@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "Read(//c/Users/white/Documents/Projects/Sauna Club/Build/Procurement/09 - Electrical & Lighting/Local Lighting/**)",
+      "Bash(cp -n \"Lighting Fixture Schedule.xlsx\" \"Lighting Fixture Schedule - Rev A.xlsx\")",
+      "Bash(python -I -c ' *)",
+      "Bash(C:/Users/white/AppData/Local/Temp/claude/C--Users-white-Documents-Projects-Unleashed/b7d1a9c8-0685-4901-995d-1675afa568f2/scratchpad/venv/Scripts/python -I -c ' *)"
     ]
   }
 }
