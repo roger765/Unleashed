@@ -4,6 +4,7 @@ import { IMove, AttackCategory, PetType } from '../types';
 export const BOSS_MOVE_IDS = [
   'holy-nova', 'sunburst', 'void-crush', 'eclipse', 'thorn-barrage',
   'grand-slam', 'tidal-crash', 'aqua-burst', 'arcane-blast',
+  'inferno', 'absolute-zero',
 ];
 
 /**
@@ -256,6 +257,116 @@ export const MOVES: Record<string, IMove> = {
     category: AttackCategory.Chance,
     power: 38,
     description: 'A slash from the dark. High power, but may miss.',
+  },
+
+  // ── Fire ────────────────────────────────────────────────────────
+  'ember': {
+    id: 'ember',
+    name: 'Ember',
+    type: PetType.Fire,
+    category: AttackCategory.Direct,
+    power: 15,
+    description: 'Flick a hot spark at the foe.',
+  },
+  'scorch': {
+    id: 'scorch',
+    name: 'Scorch',
+    type: PetType.Fire,
+    category: AttackCategory.Ranged,
+    power: 22,
+    description: 'Blast the foe with a lick of flame.',
+  },
+  'flame-burst': {
+    id: 'flame-burst',
+    name: 'Flame Burst',
+    type: PetType.Fire,
+    category: AttackCategory.Ranged,
+    power: 30,
+    description: 'Hurl a fireball that explodes on contact.',
+  },
+  'magma-fist': {
+    id: 'magma-fist',
+    name: 'Magma Fist',
+    type: PetType.Fire,
+    category: AttackCategory.Direct,
+    power: 36,
+    description: 'Punch with a fist of molten rock.',
+  },
+  'heat-haze': {
+    id: 'heat-haze',
+    name: 'Heat Haze',
+    type: PetType.Fire,
+    category: AttackCategory.Ranged,
+    power: 20,
+    description: 'Waves of shimmering heat scorch the foe.',
+  },
+  'inferno': {
+    id: 'inferno',
+    name: 'Inferno',
+    type: PetType.Fire,
+    category: AttackCategory.Chance,
+    power: 52,
+    description: 'A roaring pillar of fire. High power, but may miss. Boss special.',
+  },
+
+  // ── Ice ─────────────────────────────────────────────────────────
+  'frost-bite': {
+    id: 'frost-bite',
+    name: 'Frost Bite',
+    type: PetType.Ice,
+    category: AttackCategory.Direct,
+    power: 15,
+    description: 'A chilly nibble with frozen fangs.',
+  },
+  'chill': {
+    id: 'chill',
+    name: 'Chill',
+    type: PetType.Ice,
+    category: AttackCategory.Ranged,
+    power: 20,
+    description: 'A biting wind that numbs the foe.',
+  },
+  'ice-shard': {
+    id: 'ice-shard',
+    name: 'Ice Shard',
+    type: PetType.Ice,
+    category: AttackCategory.Ranged,
+    power: 26,
+    description: 'Fire a sharp splinter of ice.',
+  },
+  'frostburn': {
+    id: 'frostburn',
+    name: 'Frostburn',
+    type: PetType.Ice,
+    category: AttackCategory.Direct,
+    power: 34,
+    description: 'A touch so cold that it burns.',
+  },
+  'blizzard-blast': {
+    id: 'blizzard-blast',
+    name: 'Blizzard Blast',
+    type: PetType.Ice,
+    category: AttackCategory.Chance,
+    power: 38,
+    description: 'Summon a howling snowstorm. High power, but may miss.',
+  },
+  'absolute-zero': {
+    id: 'absolute-zero',
+    name: 'Absolute Zero',
+    type: PetType.Ice,
+    category: AttackCategory.Chance,
+    power: 52,
+    description: 'Freeze everything solid. High power, but may miss. Boss special.',
+  },
+
+  // ── Fire + Ice ──────────────────────────────────────────────────
+  'steam-burst': {
+    id: 'steam-burst',
+    name: 'Steam Burst',
+    type: PetType.Fire,
+    category: AttackCategory.Ranged,
+    power: 40,
+    description: 'Fire meets ice and explodes in a cloud of scalding steam.',
   },
 
   // ── Boss Specials ───────────────────────────────────────────────

@@ -47,9 +47,11 @@ export class MoveShowcaseScene extends Phaser.Scene {
       fontSize: '18px', fontFamily: 'Arial', color: '#808aa8',
     }).setOrigin(1, 1).setDepth(10);
 
-    const moves = Object.values(MOVES).sort(
-      (a, b) => ORDER.indexOf(a.type) - ORDER.indexOf(b.type),
-    );
+    // Optional filter: ?showcase&only=fire,ice plays just those types.
+    const only = new URLSearchParams(window.location.search).get('only')?.toLowerCase().split(',');
+    const moves = Object.values(MOVES)
+      .filter((m) => !only || only.includes(TYPE_NAMES[m.type].toLowerCase()))
+      .sort((a, b) => ORDER.indexOf(a.type) - ORDER.indexOf(b.type));
     const w = window as unknown as { __showcase: { done: boolean; total: number; index: number } };
     w.__showcase = { done: false, total: moves.length, index: 0 };
 
