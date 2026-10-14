@@ -35,6 +35,8 @@ export const TYPE_FX_COLOR: Record<number, number> = {
   [PetType.Normal]: 0xffffff,
   [PetType.Light]: 0xffe680,
   [PetType.Shadow]: 0xa030f0,
+  [PetType.Fire]: 0xff6a2a,
+  [PetType.Ice]: 0x9fe8ff,
 };
 
 const DEPTH = 500;
@@ -1177,6 +1179,216 @@ const FX: Record<string, MoveFx> = {
       const st = mk(s, 'fx-star', to.x, to.y, 0xfff2a0, 0.4);
       fade(s, st, 360, { scale: 3, rotation: 1 });
       fin(c, 260);
+    },
+  },
+
+  // ── Fire ──────────────────────────────────────────────────────
+  'ember': {
+    mode: 'dash',
+    run: (c) => {
+      const { s, to } = c;
+      pop(s, to, 0xffe0a0, 2.2, 260);
+      burst(s, to, 0xff7a2a, { n: 12, speed: 60, size: 0.28, grav: -30, life: 520 });
+      burst(s, to, 0xffd27a, { n: 6, speed: 40, key: 'fx-star', size: 0.14, grav: -20, spin: true });
+      impact(s, to, 0xff6a2a, 0.8);
+      fin(c, 150);
+    },
+  },
+  'scorch': {
+    mode: 'cast',
+    run: (c) => {
+      proj(c.s, c.from, c.to, { color: 0xff8a3c, scale: 0.8, dur: 320, trail: 0xffd27a, delay: 80 }, () => {
+        impact(c.s, c.to, 0xff6a2a, 1.1);
+        burst(c.s, c.to, 0xffb347, { n: 10, speed: 70, grav: -25, life: 500 });
+        fin(c, 160);
+      });
+    },
+  },
+  'flame-burst': {
+    mode: 'cast',
+    run: (c) => {
+      charge(c.s, c.from, 0xff8a3c, 240, 55);
+      proj(c.s, c.from, c.to, { color: 0xff6a2a, scale: 1.3, dur: 380, arc: 30, delay: 220, trail: 0xffd27a }, () => {
+        pop(c.s, c.to, 0xfff2a0, 4, 300);
+        impact(c.s, c.to, 0xff6a2a, 1.4);
+        ring(c.s, c.to, 0xffb347, 2.2, 440);
+        burst(c.s, c.to, 0xff7a2a, { n: 22, speed: 120, grav: -40, life: 650, size: 0.32 });
+        shake(c.s, 200, 0.006);
+        fin(c, 220);
+      });
+    },
+  },
+  'magma-fist': {
+    mode: 'dash',
+    run: (c) => {
+      const { s, to } = c;
+      const ground = at(to, { x: 0, y: 28 });
+      ring(s, ground, 0xff6a2a, 2.8, 520, 0.35);
+      ring(s, ground, 0xffd27a, 1.8, 400, 0.35);
+      impact(s, to, 0xff5a1a, 1.5);
+      burst(s, to, 0x7a2a12, { n: 14, speed: 120, key: 'fx-rock', size: 0.34, add: false, grav: 60, spin: true });
+      burst(s, to, 0xff9a3c, { n: 14, speed: 90, grav: -20, life: 600 });
+      shake(s, 240, 0.009);
+      fin(c, 220);
+    },
+  },
+  'heat-haze': {
+    mode: 'cast',
+    run: (c) => {
+      const { s, from, to } = c;
+      pop(s, from, 0xffa24a, 2.4, 360);
+      for (let i = 0; i < 4; i++) {
+        after(s, i * 110, () => {
+          ring(s, to, 0xffa24a, 1.6 + i * 0.5, 620, 0.5);
+          pop(s, at(to, { x: rnd(-18, 18), y: rnd(-14, 14) }), 0xffd27a, 2 + i * 0.4, 420);
+        });
+      }
+      after(s, 380, () => {
+        impact(s, to, 0xff8a3c, 1);
+        burst(s, to, 0xffd27a, { n: 10, speed: 40, grav: -35, life: 700, size: 0.2 });
+      });
+      fin(c, 760);
+    },
+  },
+  'inferno': {
+    mode: 'summon',
+    run: (c) => {
+      const { s, to } = c;
+      charge(s, c.from, 0xff6a2a, 320, 80);
+      after(s, 320, () => {
+        const col = mk(s, 'fx-bar', to.x, to.y + 40, 0xff6a2a, 1).setOrigin(0.5, 1);
+        col.setScale(0.5, 0.1);
+        s.tweens.add({
+          targets: col, scaleX: 12, scaleY: 44, duration: 200, ease: 'Cubic.easeOut',
+          onComplete: () => fade(s, col, 420, { scaleX: 4 }),
+        });
+        const core = mk(s, 'fx-bar', to.x, to.y + 40, 0xfff2a0, 1).setOrigin(0.5, 1);
+        core.setScale(0.3, 0.1);
+        s.tweens.add({
+          targets: core, scaleX: 5, scaleY: 40, duration: 200, ease: 'Cubic.easeOut',
+          onComplete: () => fade(s, core, 380, { scaleX: 1.5 }),
+        });
+        burst(s, to, 0xff7a2a, { n: 30, speed: 110, grav: -70, life: 800, size: 0.34 });
+        burst(s, to, 0xffd27a, { n: 12, speed: 90, key: 'fx-star', size: 0.2, grav: -50, spin: true });
+        ring(s, at(to, { x: 0, y: 28 }), 0xff6a2a, 3.4, 640, 0.35);
+        pop(s, to, 0xfff2a0, 5, 480);
+        shake(s, 340, 0.011);
+      });
+      fin(c, 760);
+    },
+  },
+
+  // ── Ice ───────────────────────────────────────────────────────
+  'frost-bite': {
+    mode: 'dash',
+    run: (c) => {
+      const { s, to } = c;
+      slashMark(s, at(to, { x: 0, y: -14 }), Math.PI * 1.5, 0x9fe8ff, 1.3, 0xffffff, 300);
+      slashMark(s, at(to, { x: 0, y: 14 }), Math.PI * 0.5, 0x9fe8ff, 1.3, 0xffffff, 300);
+      burst(s, to, 0xcdf5ff, { n: 8, speed: 70, key: 'fx-shard', size: 0.5, align: true });
+      impact(s, to, 0x9fe8ff, 0.9);
+      fin(c, 160);
+    },
+  },
+  'chill': {
+    mode: 'cast',
+    run: (c) => {
+      const { s, from, to } = c;
+      for (let i = 0; i < 3; i++) {
+        proj(s, at(from, { x: 0, y: (i - 1) * 14 }), at(to, { x: 0, y: (i - 1) * 8 }),
+          { color: 0xcdf5ff, scale: 0.55, dur: 360, arc: (i - 1) * 18, delay: i * 70, trail: 0x9fe8ff },
+          () => { if (i === 2) impact(s, to, 0x9fe8ff, 0.9); });
+      }
+      after(s, 420, () => {
+        ring(s, to, 0xcdf5ff, 2, 520, 0.6);
+        burst(s, to, 0xffffff, { n: 14, speed: 40, key: 'fx-star', size: 0.14, grav: 35, life: 760, spin: true });
+      });
+      fin(c, 760);
+    },
+  },
+  'ice-shard': {
+    mode: 'cast',
+    run: (c) => {
+      proj(c.s, c.from, c.to, { key: 'fx-shard', color: 0xbdf0ff, scale: 0.9, dur: 300, delay: 80, align: true, trail: 0x9fe8ff }, () => {
+        burst(c.s, c.to, 0xdff8ff, { n: 14, speed: 120, key: 'fx-shard', size: 0.5, align: true, life: 500 });
+        impact(c.s, c.to, 0x9fe8ff, 1.1);
+        fin(c, 160);
+      });
+    },
+  },
+  'frostburn': {
+    mode: 'dash',
+    run: (c) => {
+      const { s, to } = c;
+      pop(s, to, 0x4fc3f7, 3.6, 380);
+      burst(s, to, 0x4fc3f7, { n: 16, speed: 70, grav: -30, life: 600, size: 0.3 });
+      burst(s, to, 0xffffff, { n: 8, speed: 60, key: 'fx-star', size: 0.18, grav: -25, spin: true });
+      burst(s, to, 0xff9a3c, { n: 5, speed: 40, grav: -20, life: 420, size: 0.18 });
+      ring(s, to, 0xe0ffff, 1.8, 400);
+      impact(s, to, 0x4fc3f7, 1.3);
+      fin(c, 200);
+    },
+  },
+  'blizzard-blast': {
+    mode: 'summon',
+    run: (c) => {
+      const { s, to } = c;
+      for (let i = 0; i < 26; i++) {
+        const sx = to.x - 120 + rnd(-30, 30);
+        const sy = to.y - 90 + rnd(-40, 40);
+        const f = mk(s, 'fx-star', sx, sy, i % 3 === 0 ? 0xffffff : 0xbdf0ff, rnd(0.2, 0.4));
+        s.tweens.add({
+          targets: f, x: to.x + 80 + rnd(-30, 30), y: to.y + 40 + rnd(-30, 30),
+          rotation: rnd(-5, 5), alpha: 0, duration: rnd(380, 620), delay: i * 18,
+          ease: 'Sine.easeIn', onComplete: () => f.destroy(),
+        });
+      }
+      after(s, 260, () => {
+        impact(s, to, 0xbdf0ff, 1.4);
+        ring(s, to, 0xe0ffff, 2.6, 520, 0.6);
+        shake(s, 220, 0.007);
+      });
+      fin(c, 640);
+    },
+  },
+  'absolute-zero': {
+    mode: 'summon',
+    run: (c) => {
+      const { s, to } = c;
+      pop(s, to, 0xffffff, 6, 420);
+      ring(s, to, 0xbdf0ff, 4.2, 700, 0.7);
+      ring(s, to, 0xe0ffff, 2.6, 560, 0.7);
+      const frost = mk(s, 'fx-glow', to.x, to.y, 0x9fe8ff, 0.5, true, 0.7);
+      fade(s, frost, 800, { scale: 4.5 });
+      const crystal = mk(s, 'fx-star', to.x, to.y, 0xe0ffff, 0.3);
+      s.tweens.add({
+        targets: crystal, scale: 2.4, rotation: 1.2, duration: 420, ease: 'Cubic.easeOut',
+        onComplete: () => fade(s, crystal, 360),
+      });
+      burst(s, to, 0xbdf0ff, { n: 22, speed: 140, key: 'fx-shard', size: 0.6, align: true, life: 640 });
+      burst(s, to, 0xffffff, { n: 14, speed: 80, key: 'fx-star', size: 0.18, spin: true, life: 700 });
+      shake(s, 320, 0.01);
+      fin(c, 760);
+    },
+  },
+
+  // ── Fire + Ice ────────────────────────────────────────────────
+  'steam-burst': {
+    mode: 'cast',
+    run: (c) => {
+      const { s, from, to } = c;
+      charge(s, from, 0xffffff, 240, 60);
+      proj(s, from, to, { color: 0xff6a2a, scale: 0.9, dur: 360, arc: 36, delay: 220, trail: 0xffd27a }, () => {
+        impact(s, to, 0xff6a2a, 0.8);
+      });
+      proj(s, from, to, { color: 0x6fd6ff, scale: 0.9, dur: 360, arc: -36, delay: 220, trail: 0xbdf0ff }, () => {
+        impact(s, to, 0x6fd6ff, 0.8);
+        pop(s, to, 0xffffff, 5, 520);
+        ring(s, to, 0xffffff, 2.8, 560, 0.6);
+        burst(s, to, 0xe8eef2, { n: 20, speed: 70, size: 1.1, add: false, grav: -45, life: 900 });
+        shake(s, 260, 0.008);
+        fin(c, 420);
+      });
     },
   },
 };

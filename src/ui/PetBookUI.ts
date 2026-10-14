@@ -23,6 +23,8 @@ const PET_TYPE_NAMES: Record<PetType, string> = {
   [PetType.Normal]: 'Normal',
   [PetType.Light]: 'Light',
   [PetType.Shadow]: 'Shadow',
+  [PetType.Fire]: 'Fire',
+  [PetType.Ice]: 'Ice',
 };
 
 const PET_TYPE_COLORS: Record<PetType, string> = {
@@ -33,6 +35,8 @@ const PET_TYPE_COLORS: Record<PetType, string> = {
   [PetType.Normal]: '#e0e0e0',
   [PetType.Light]: '#fff176',
   [PetType.Shadow]: '#9575cd',
+  [PetType.Fire]: '#ff3d3d',
+  [PetType.Ice]: '#ffffff',
 };
 
 function petTypeForInstance(pet: IPetInstance): PetType {

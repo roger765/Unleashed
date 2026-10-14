@@ -23,8 +23,12 @@ import { HenryRanchScene } from './scenes/HenryRanchScene';
 import { CastleOfMastersScene } from './scenes/CastleOfMastersScene';
 import { CastleRoomScene } from './scenes/CastleRoomScene';
 import { CastleBasementScene } from './scenes/CastleBasementScene';
+import { TrainingZoneScene } from './scenes/TrainingZoneScene';
 import { SunlitMeadowsScene } from './scenes/SunlitMeadowsScene';
 import { GloomhollowScene } from './scenes/GloomhollowScene';
+import { EmberreachScene } from './scenes/EmberreachScene';
+import { FrostmoorScene } from './scenes/FrostmoorScene';
+import { SteamSanctumScene } from './scenes/SteamSanctumScene';
 import { MoveShowcaseScene } from './scenes/MoveShowcaseScene';
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {
@@ -55,8 +59,12 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
     CastleOfMastersScene,
     CastleRoomScene,
     CastleBasementScene,
+    TrainingZoneScene,
     SunlitMeadowsScene,
     GloomhollowScene,
+    EmberreachScene,
+    FrostmoorScene,
+    SteamSanctumScene,
     MoveShowcaseScene,
   ],
 };

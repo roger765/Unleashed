@@ -5,6 +5,7 @@ import { ITEMS } from '../data/items';
 import { ItemType, ArmorSlot } from '../types/item';
 import { PetType } from '../types/pet';
 import { PET_TYPE_LABELS } from '../utils/math';
+import { BOOSTABLE_TYPES } from '../utils/spawn';
 import { Panel } from './Panel';
 import { Button } from './Button';
 import { Toast } from './Toast';
@@ -242,10 +243,11 @@ export class BagUI {
     if (tab === 'Charms') {
       const charmId = state.equippedCharmId;
       const charmName = charmId ? (ITEMS[charmId]?.name ?? 'Unknown') : 'None';
-      const lightMult = gs.getCharmSpawnMultiplier(PetType.Light) * gs.getLureSpawnMultiplier(PetType.Light);
-      const shadowMult = gs.getCharmSpawnMultiplier(PetType.Shadow) * gs.getLureSpawnMultiplier(PetType.Shadow);
+      const boosts = BOOSTABLE_TYPES
+        .map((t) => `${PET_TYPE_LABELS[t]} x${gs.getCharmSpawnMultiplier(t) * gs.getLureSpawnMultiplier(t)}`)
+        .join(', ');
       container.add(this.scene.add.text(cx - 270, contentTop,
-        `Charm: ${charmName}  |  Spawn boost: Light x${lightMult}, Shadow x${shadowMult}`, {
+        `Charm: ${charmName}  |  Spawn boost: ${boosts}`, {
         fontSize: '13px', fontFamily: 'Arial', color: '#fff176',
       }));
 

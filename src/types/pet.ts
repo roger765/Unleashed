@@ -6,6 +6,9 @@ export enum PetType {
   Normal,
   Light,
   Shadow,
+  // Appended (not reordered) so existing numeric values stay stable.
+  Fire,
+  Ice,
 }
 
 export interface IPetTemplate {

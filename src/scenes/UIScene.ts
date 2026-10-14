@@ -241,6 +241,8 @@ export class UIScene extends Phaser.Scene {
       'ConvergenceWildsScene',
       'SunlitMeadowsScene',
       'GloomhollowScene',
+      'EmberreachScene',
+      'FrostmoorScene',
     ];
     for (const key of worldScenes) {
       if (this.scene.isActive(key)) return key;

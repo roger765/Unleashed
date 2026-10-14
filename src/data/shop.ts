@@ -11,6 +11,8 @@ export const SHOP_ITEMS = [
   { itemId: 'water-trident', category: 'Weapons' },
   { itemId: 'light-staff', category: 'Weapons' },
   { itemId: 'shadow-scythe', category: 'Weapons' },
+  { itemId: 'fire-staff', category: 'Weapons' },
+  { itemId: 'ice-staff', category: 'Weapons' },
   { itemId: 'leather-cap', category: 'Armor' },
   { itemId: 'leather-vest', category: 'Armor' },
   { itemId: 'leather-boots', category: 'Armor' },
@@ -23,6 +25,8 @@ export const SHOP_ITEMS = [
   { itemId: 'water-mail', category: 'Armor' },
   { itemId: 'radiant-mail', category: 'Armor' },
   { itemId: 'umbral-cloak', category: 'Armor' },
+  { itemId: 'cinder-mail', category: 'Armor' },
+  { itemId: 'frost-cloak', category: 'Armor' },
   { itemId: 'health-potion', category: 'Healing' },
   { itemId: 'super-health-potion', category: 'Healing' },
   { itemId: 'pet-food', category: 'Healing' },
@@ -34,16 +38,27 @@ export const SHOP_ITEMS = [
   { itemId: 'shadow-charm-1', category: 'Charms' },
   { itemId: 'shadow-charm-2', category: 'Charms' },
   { itemId: 'shadow-charm-3', category: 'Charms' },
+  { itemId: 'fire-charm-1', category: 'Charms' },
+  { itemId: 'fire-charm-2', category: 'Charms' },
+  { itemId: 'fire-charm-3', category: 'Charms' },
+  { itemId: 'ice-charm-1', category: 'Charms' },
+  { itemId: 'ice-charm-2', category: 'Charms' },
+  { itemId: 'ice-charm-3', category: 'Charms' },
   { itemId: 'light-lure', category: 'Lures' },
   { itemId: 'shadow-lure', category: 'Lures' },
+  { itemId: 'fire-lure', category: 'Lures' },
+  { itemId: 'ice-lure', category: 'Lures' },
   { itemId: 'light-stone', category: 'Stones' },
   { itemId: 'shadow-stone', category: 'Stones' },
+  { itemId: 'fire-stone', category: 'Stones' },
+  { itemId: 'ice-stone', category: 'Stones' },
 ];
 
 // ── TMs: one per move, grouped by move type (boss specials separate) ──
 const TM_TYPE_NAMES: Record<number, string> = {
   [PetType.Normal]: 'Normal', [PetType.Rock]: 'Rock', [PetType.Nature]: 'Nature',
   [PetType.Wood]: 'Wood', [PetType.Water]: 'Water', [PetType.Light]: 'Light', [PetType.Shadow]: 'Shadow',
+  [PetType.Fire]: 'Fire', [PetType.Ice]: 'Ice',
 };
 export const TM_CATEGORIES = [...Object.values(TM_TYPE_NAMES), 'Boss'].map((n) => `TM ${n}`);
 

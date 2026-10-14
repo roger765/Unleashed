@@ -233,6 +233,20 @@ export class GameState {
     return this.state.counters[`lure-mult-${type}`] ?? 1;
   }
 
+  /**
+   * Hazard damage (lava): removes a share of the lead pet's max HP but never faints it.
+   * Returns the HP lost (0 if the lead pet is missing or already at 1 HP).
+   */
+  damageLeadPet(percentOfMax: number): number {
+    const pet = this.state.team[0];
+    if (!pet || pet.currentHp <= 1) return 0;
+    const loss = Math.min(pet.currentHp - 1, Math.max(1, Math.ceil((pet.maxHp * percentOfMax) / 100)));
+    pet.currentHp -= loss;
+    EventBus.emit('team-changed', this.state.team);
+    this.schedulePersist();
+    return loss;
+  }
+
   getTotalArmorDefenseBonus(): number {
     const armor = this.state.equippedArmor;
     const slots = [armor.helmet, armor.chest, armor.boots];
@@ -313,6 +327,8 @@ export class GameState {
     const type = PET_TEMPLATES[pet.templateId]?.type;
     if (type === PetType.Light) return 'light-stone';
     if (type === PetType.Shadow) return 'shadow-stone';
+    if (type === PetType.Fire) return 'fire-stone';
+    if (type === PetType.Ice) return 'ice-stone';
     return null;
   }
 
