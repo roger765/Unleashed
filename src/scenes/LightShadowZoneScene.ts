@@ -61,6 +61,8 @@ export interface LightShadowZoneConfig {
   hazard?: ZoneHazard;
   /** Scene the exit portal leads to (default: the Castle basement). */
   exitScene?: string;
+  /** Passed to the exit scene when it starts. */
+  exitData?: object;
   exitLabel?: string;
   bossId: string;
   /** Paid out once, the first time the boss is beaten. */
@@ -153,7 +155,7 @@ export abstract class LightShadowZoneScene extends Phaser.Scene {
       this.cameras.main.fadeOut(300, 0, 0, 0);
       this.cameras.main.once('camerafadeoutcomplete', () => {
         this.scene.stop('UIScene');
-        this.scene.start(z.exitScene ?? 'CastleBasementScene');
+        this.scene.start(z.exitScene ?? 'CastleBasementScene', z.exitData);
       });
     });
 

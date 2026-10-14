@@ -38,6 +38,8 @@ interface RoomConfig {
   intro: string[];
   /** Scene the south exit leads to (defaults to the Castle hall). */
   exitScene?: string;
+  /** Passed to the exit scene when it starts. */
+  exitData?: object;
   exitLabel?: string;
   /** Tint applied to floor and wall tiles. */
   tint?: number;
@@ -145,6 +147,7 @@ const ROOM_CONFIGS: Record<RoomId, RoomConfig> = {
     bossName: 'Twilight Wyrm',
     label: 'Steam Sanctum',
     exitScene: 'ShrubWoodlandsScene',
+    exitData: { entry: 'sanctum' },
     exitLabel: '↓ Back to Shrub Woodlands',
     tint: 0xcfd8dc,
     scaling: FIRE_ICE_SCALING,
@@ -264,7 +267,7 @@ export class CastleRoomScene extends Phaser.Scene {
       this.cameras.main.fadeOut(300, 0, 0, 0);
       this.cameras.main.once('camerafadeoutcomplete', () => {
         this.scene.stop('UIScene');
-        this.scene.start(this.config.exitScene ?? 'CastleOfMastersScene');
+        this.scene.start(this.config.exitScene ?? 'CastleOfMastersScene', this.config.exitData);
       });
     });
 

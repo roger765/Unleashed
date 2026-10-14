@@ -21,6 +21,7 @@ export class EmberreachScene extends LightShadowZoneScene {
       scaling: FIRE_ICE_SCALING,
       hazard: { kind: 'lava', patches: 7 },
       exitScene: 'ShrubWoodlandsScene',
+      exitData: { entry: 'ember' },
       exitLabel: '↓ Back to Shrub Woodlands',
       bossId: 'emberlord-vulkar',
       bossRewards: {

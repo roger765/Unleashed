@@ -21,6 +21,7 @@ export class FrostmoorScene extends LightShadowZoneScene {
       scaling: FIRE_ICE_SCALING,
       hazard: { kind: 'ice', patches: 8 },
       exitScene: 'ShrubWoodlandsScene',
+      exitData: { entry: 'frost' },
       exitLabel: '↓ Back to Shrub Woodlands',
       bossId: 'frostqueen-hailey',
       bossRewards: {

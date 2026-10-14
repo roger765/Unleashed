@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from '../constants';
 import { GameState } from '../state/GameState';
 import { areAllOverworldZoneBossesDefeated, areAllBasementTrainersDefeated, areAllCastleMastersDefeated } from '../battle/bossUtils';
+import { areBothFireIceBossesDefeated } from '../utils/bossRewards';
 import { Panel } from './Panel';
 import { Button } from './Button';
 
@@ -57,6 +58,7 @@ export class MapUI {
     const prismUnlocked = areAllOverworldZoneBossesDefeated();
     const basementUnlocked = areAllCastleMastersDefeated();
     const portalsOpen = areAllBasementTrainersDefeated();
+    const sanctumOpen = areBothFireIceBossesDefeated();
     const zones = [
       { name: 'Starting Town', x: cx - 220, y: cy, color: 0xffd700, scene: 'TownScene' },
       {
@@ -88,6 +90,14 @@ export class MapUI {
         x: cx + 200, y: cy + 100, color: portalsOpen ? 0x9575cd : 0x666666, scene: 'GloomhollowScene',
         locked: !portalsOpen,
       },
+      // Fire and Ice zones (portals on the east wall of Shrub Woodlands) and the Steam Sanctum
+      { name: 'Emberreach', x: cx + 140, y: cy - 170, color: 0xe53935, scene: 'EmberreachScene' },
+      { name: 'Frostmoor', x: cx + 140, y: cy + 170, color: 0xffffff, scene: 'FrostmoorScene' },
+      {
+        name: sanctumOpen ? 'Steam Sanctum' : 'Steam Sanctum\n(sealed)',
+        x: cx + 235, y: cy + 165, color: sanctumOpen ? 0xcfd8dc : 0x666666, scene: 'SteamSanctumScene',
+        locked: !sanctumOpen,
+      },
     ];
 
     // Draw connections (Deep Forest is the first wild zone east of town)
@@ -102,6 +112,9 @@ export class MapUI {
     g.lineBetween(zones[2].x, zones[2].y, zones[7].x, zones[7].y);
     g.lineBetween(zones[8].x, zones[8].y, zones[9].x, zones[9].y);
     g.lineBetween(zones[8].x, zones[8].y, zones[10].x, zones[10].y);
+    g.lineBetween(zones[3].x, zones[3].y, zones[11].x, zones[11].y);
+    g.lineBetween(zones[3].x, zones[3].y, zones[12].x, zones[12].y);
+    g.lineBetween(zones[12].x, zones[12].y, zones[13].x, zones[13].y);
     this.container.add(g);
 
     for (const zone of zones) {
@@ -119,7 +132,7 @@ export class MapUI {
 
       const labelColor = isCurrent ? '#ffffff' : isLockedPrism ? '#666666' : '#888888';
       const label = this.scene.add.text(zone.x, zone.y + 28, zone.name, {
-        fontSize: '11px', fontFamily: 'Arial', color: labelColor,
+        fontSize: '11px', fontFamily: 'Arial', color: labelColor, align: 'center',
       }).setOrigin(0.5);
       this.container.add(label);
 

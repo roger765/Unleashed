@@ -19,6 +19,7 @@ import { DialogueBox } from '../ui/DialogueBox';
 import { BOSSES } from '../data/bosses';
 import { applyBossSpecialMoves, buildBossEnemyTeam } from '../battle/bossUtils';
 import { Toast } from '../ui/Toast';
+import { areBothFireIceBossesDefeated } from '../utils/bossRewards';
 
 const MAP_W = 52;
 const MAP_H = 42;
@@ -27,6 +28,10 @@ const MAP_H = 42;
 const SHRUB_WOOD_PETS = ['twig', 'bark', 'cedar', 'willow', 'ironwood'];
 const SHRUB_NATURE_PETS = ['leaf', 'sprout', 'fern', 'blossom', 'flora'];
 const SHRUB_SPAWN_POOL = [...SHRUB_WOOD_PETS, ...SHRUB_NATURE_PETS];
+
+/** East-wall portals: where each sits (as a share of the map height) and which one the player came back through. */
+type PortalEntry = 'ember' | 'sanctum' | 'frost';
+const PORTAL_Y: Record<PortalEntry, number> = { ember: 0.22, sanctum: 0.5, frost: 0.78 };
 
 export class ShrubWoodlandsScene extends Phaser.Scene {
   private player!: Player;
@@ -39,9 +44,17 @@ export class ShrubWoodlandsScene extends Phaser.Scene {
   /** Throttle toast when shrub exits are locked. */
   private shrubExitWarnAt = 0;
   private nearNpc = false;
+  /** Set when returning from Emberreach, Frostmoor or the Steam Sanctum, so the player appears at that portal. */
+  private returnEntry: PortalEntry | null = null;
+  private portalWarnAt = 0;
 
   constructor() {
     super({ key: 'ShrubWoodlandsScene' });
+  }
+
+  init(data?: { entry?: string }): void {
+    const entry = data?.entry;
+    this.returnEntry = entry === 'ember' || entry === 'sanctum' || entry === 'frost' ? entry : null;
   }
 
   create(): void {
@@ -103,7 +116,28 @@ export class ShrubWoodlandsScene extends Phaser.Scene {
       fontSize: '12px', fontFamily: 'Arial', color: '#4fc3f7',
     }).setOrigin(0.5).setDepth(10);
 
-    this.player = new Player(this, 120, worldH / 2);
+    // East wall: Emberreach (north), Steam Sanctum (middle, sealed until both bosses fall), Frostmoor (south)
+    const sanctumOpen = areBothFireIceBossesDefeated();
+    const addPortal = (entry: PortalEntry, color: number, label: string, sealed: boolean) => {
+      const y = worldH * PORTAL_Y[entry];
+      const glow = this.add.ellipse(worldW - 28, y, 40, 110, color, sealed ? 0.12 : 0.35)
+        .setStrokeStyle(3, sealed ? 0x666666 : color).setDepth(4);
+      if (!sealed) this.tweens.add({ targets: glow, alpha: 0.6, duration: 900, yoyo: true, repeat: -1 });
+      this.add.text(worldW - 54, y, sealed ? `${label}\n(sealed)` : label, {
+        fontSize: '12px', fontFamily: 'Arial', color: sealed ? '#888888' : '#ffd700',
+        stroke: '#000', strokeThickness: 2, align: 'right',
+      }).setOrigin(1, 0.5).setDepth(10);
+      const zone = this.add.zone(worldW - 16, y, 32, 130);
+      this.physics.add.existing(zone, true);
+      return zone;
+    };
+    const exitEmber = addPortal('ember', 0xe53935, 'Emberreach →', false);
+    const exitFrost = addPortal('frost', 0xffffff, 'Frostmoor →', false);
+    const exitSanctum = addPortal('sanctum', 0xcfd8dc, 'Steam Sanctum →', !sanctumOpen);
+
+    const spawnY = this.returnEntry ? worldH * PORTAL_Y[this.returnEntry] : worldH / 2;
+    const spawnX = this.returnEntry ? worldW - 120 : 120;
+    this.player = new Player(this, spawnX, spawnY);
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
     this.cameras.main.setBounds(0, 0, worldW, worldH);
     this.physics.add.collider(this.player, this.walls);
@@ -134,6 +168,20 @@ export class ShrubWoodlandsScene extends Phaser.Scene {
         return;
       }
       fadeToScene('AquaIslesScene');
+    });
+
+    this.physics.add.overlap(this.player, exitEmber, () => fadeToScene('EmberreachScene', true));
+    this.physics.add.overlap(this.player, exitFrost, () => fadeToScene('FrostmoorScene', true));
+    this.physics.add.overlap(this.player, exitSanctum, () => {
+      if (!areBothFireIceBossesDefeated()) {
+        const t = this.time.now;
+        if (t - this.portalWarnAt > 2800) {
+          Toast.show(this, 'Defeat Emberlord Vulkar and Frostqueen Hailey to open the Steam Sanctum.');
+          this.portalWarnAt = t;
+        }
+        return;
+      }
+      fadeToScene('SteamSanctumScene', true);
     });
 
     const chestPositions = [
