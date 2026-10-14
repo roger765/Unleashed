@@ -18,9 +18,13 @@ import { AudioManager } from '../audio/AudioManager';
 import { ITEMS } from '../data/items';
 import { ALL_REGISTERED_BOSS_IDS } from '../data/bosses';
 import { ItemType } from '../types/item';
-import { PetType } from '../types/pet';
 import { isTouchDevice } from '../utils/mobile';
 import { getMoveMaxAA, petNeedsFeeding, refillPetAA } from '../utils/petMoves';
+import { EventBus } from '../state/EventBus';
+import { PET_TEMPLATES } from '../data/pets';
+import { PetType } from '../types/pet';
+import { getTrainer, trainerLevel, ITrainerDefinition } from '../data/trainers';
+import { buildTrainerEnemyTeam } from '../battle/bossUtils';
 
 const TYPE_COLORS: Record<number, number> = {
   0: 0x78909c, // Rock
@@ -139,8 +143,8 @@ export class BattleScene extends Phaser.Scene {
       const x = startX + i * spacing;
 
       const highlight = this.add.graphics().setDepth(1);
-      const sprite = this.add.image(x, y, c.pet?.templateId ?? 'player').setScale(2).setDepth(2);
-      const nameText = this.add.text(x, y + 55, `${c.name} Lv${c.pet?.level ?? 1}`, {
+      const sprite = this.add.image(x, y, c.texture ?? c.pet?.templateId ?? 'player').setScale(2).setDepth(2);
+      const nameText = this.add.text(x, y + 55, `${c.name} Lv${c.pet?.level ?? c.level ?? 1}`, {
         fontSize: '13px', fontFamily: 'Arial', color: '#ffffff',
       }).setOrigin(0.5).setDepth(2);
       const hpBar = new HealthBar(this, x - 50, y + 70, 100, 12);
@@ -288,7 +292,8 @@ export class BattleScene extends Phaser.Scene {
       const item = ITEMS[slot.itemId];
       return item && (item.itemType === ItemType.Potion || item.itemType === ItemType.Food);
     });
-    if (usable.length > 0) {
+    const itemsLocked = this.manager.config.training?.mode === 'handicap';
+    if (usable.length > 0 && !itemsLocked) {
       const itemBtn = new Button(
         this, px, py + 35 + moveList.length * this.btnStep,
         'Items',
@@ -794,6 +799,7 @@ export class BattleScene extends Phaser.Scene {
 
     // Damage taken carries over: save each pet's remaining HP before rewards are applied
     GameState.getInstance().syncPetHpFromBattle(this.manager.config.playerTeam);
+    this.restoreSparringTeam();
 
     if (won) {
       const title = this.add.text(cx, cy - 100, 'VICTORY!', {
@@ -803,6 +809,18 @@ export class BattleScene extends Phaser.Scene {
       this.actionContent.push(title);
 
       const rewards = this.manager.calculateRewards();
+      const training = this.manager.config.training;
+
+      // Endurance: bank this round's rewards and move on; everything is paid after the last round
+      if (training && training.round < training.totalRounds) {
+        title.setText(`ROUND ${training.round} CLEARED!`);
+        this.showEnduranceNextRound(rewards.coins, rewards.xpPerPet);
+        return;
+      }
+      if (training) {
+        rewards.coins += training.banked.coins;
+        rewards.xpPerPet += training.banked.xp;
+      }
 
       // Apply rewards to game state
       const gs = GameState.getInstance();
@@ -857,7 +875,9 @@ export class BattleScene extends Phaser.Scene {
       // Award XP to alive pets
       const levelUps: string[] = [];
       const state = gs.getState();
-      for (let i = 0; i < state.team.length; i++) {
+      // Handicap fights only the lead pet, so only it earns XP
+      const xpPetCount = training?.mode === 'handicap' ? Math.min(1, state.team.length) : state.team.length;
+      for (let i = 0; i < xpPetCount; i++) {
         if (state.team[i].currentHp > 0) {
           const levelled = gs.addXpToPet(i, rewards.xpPerPet);
           if (levelled) {
@@ -899,6 +919,15 @@ export class BattleScene extends Phaser.Scene {
         infoY += 25;
       }
 
+      for (const line of this.grantTrainerFirstWin()) {
+        const t = this.add.text(cx, infoY, line, {
+          fontSize: '18px', fontFamily: 'Arial Black', color: '#ffd700',
+          stroke: '#000', strokeThickness: 3,
+        }).setOrigin(0.5).setDepth(201);
+        this.actionContent.push(t);
+        infoY += 25;
+      }
+
       infoY += 20;
 
       // Capture option
@@ -919,7 +948,7 @@ export class BattleScene extends Phaser.Scene {
       // Check win condition: all bosses defeated
       const allDefeated = ALL_REGISTERED_BOSS_IDS.every((bid) => gs.getFlag(`boss-defeated-${bid}`));
 
-      if (allDefeated && this.manager.config.isBoss) {
+      if (allDefeated && this.manager.config.isBoss && !training) {
         const winText = this.add.text(cx, infoY, 'You have conquered all bosses! Champion of the realm!', {
           fontSize: '20px', fontFamily: 'Arial Black', color: '#ffd700',
           wordWrap: { width: 500 },
@@ -943,13 +972,92 @@ export class BattleScene extends Phaser.Scene {
       this.actionContent.push(title);
 
       // No free heal on loss: pets stay damaged until healed with a Feast, Apple or Health Potion
-      const btn = new Button(this, cx, cy + 40, 'Return to Town', () => {
+      const inTraining = !!this.manager.config.training;
+      const btn = new Button(this, cx, cy + 40, inTraining ? 'Back to Training Zone' : 'Return to Town', () => {
         this.scene.stop('UIScene');
-        this.scene.start('TownScene');
+        this.scene.start(inTraining ? this.manager.config.returnScene : 'TownScene');
       }, { width: 250, height: 50, fontSize: '18px', fillColor: 0xc0392b });
       btn.setDepth(201);
       this.actionContent.push(btn);
     }
+  }
+
+  /** Sparring leaves no mark: put each pet's HP and AA back to what they were before the fight. */
+  private restoreSparringTeam(): void {
+    const snapshot = this.manager.config.training?.teamSnapshot;
+    if (!snapshot) return;
+    const gs = GameState.getInstance();
+    const team = gs.getState().team;
+    for (let i = 0; i < team.length && i < snapshot.length; i++) {
+      team[i].currentHp = snapshot[i].currentHp;
+      if (snapshot[i].aa) team[i].aa = { ...snapshot[i].aa };
+      else delete team[i].aa;
+    }
+    EventBus.emit('team-changed', team);
+    gs.autoSave();
+  }
+
+  /** Round cleared in Endurance: bank the rewards and offer the next round. */
+  private showEnduranceNextRound(coins: number, xp: number): void {
+    const cfg = this.manager.config;
+    const training = cfg.training!;
+    const trainer = getTrainer(training.trainerId);
+    const cx = SCREEN_WIDTH / 2;
+    const cy = SCREEN_HEIGHT / 2;
+    const banked = { coins: training.banked.coins + coins, xp: training.banked.xp + xp };
+
+    const info = this.add.text(cx, cy - 40,
+      `Banked so far: +${banked.coins} coins   +${banked.xp} XP\nPaid out after round ${training.totalRounds}. Losing forfeits it.`, {
+      fontSize: '18px', fontFamily: 'Arial', color: '#ffffff', align: 'center',
+    }).setOrigin(0.5).setDepth(201);
+    this.actionContent.push(info);
+
+    const btn = new Button(this, cx, cy + 40, `Start Round ${training.round + 1}`, () => {
+      if (!trainer) return;
+      const next: BattleConfig = {
+        ...cfg,
+        enemyTeam: buildTrainerEnemyTeam(trainer, training.playerLevel),
+        training: { ...training, round: training.round + 1, banked },
+      };
+      this.scene.restart({ battleConfig: next });
+    }, { width: 250, height: 50, fontSize: '18px' });
+    btn.setDepth(201);
+    this.actionContent.push(btn);
+  }
+
+  /** First clear of a trainer (any mode but Sparring): TM plus an item or pet. Returns lines to show. */
+  private grantTrainerFirstWin(): string[] {
+    const training = this.manager.config.training;
+    if (!training || training.mode === 'sparring') return [];
+    const trainer: ITrainerDefinition | undefined = getTrainer(training.trainerId);
+    if (!trainer) return [];
+    const gs = GameState.getInstance();
+    const flag = `training-first-win-${trainer.id}`;
+    if (gs.getFlag(flag)) return [];
+    gs.setFlag(flag, true);
+
+    const lines: string[] = [`First win over ${trainer.name}!`];
+    const reward = trainer.firstWin;
+    gs.addItem(reward.tmItemId, 1);
+    lines.push(`Received ${ITEMS[reward.tmItemId]?.name ?? reward.tmItemId}`);
+    for (const it of reward.items ?? []) {
+      gs.addItem(it.itemId, it.quantity);
+      lines.push(`Received ${ITEMS[it.itemId]?.name ?? it.itemId} x${it.quantity}`);
+    }
+    if (reward.petTemplateId) {
+      const template = PET_TEMPLATES[reward.petTemplateId];
+      const pet = performCapture({
+        canCapture: true,
+        petTemplateId: reward.petTemplateId,
+        petLevel: trainerLevel(trainer, training.playerLevel),
+        cost: 0,
+        petName: template?.name ?? reward.petTemplateId,
+      });
+      const added = gs.addPetToTeam(pet);
+      if (!added) gs.addPetToStorage(pet);
+      lines.push(`${pet.nickname} joined your ${added ? 'team' : 'Pet Book storage'}!`);
+    }
+    return lines;
   }
 
   private doCapture(info: CaptureInfo): void {

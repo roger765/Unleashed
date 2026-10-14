@@ -6,11 +6,12 @@ import {
   LIGHT_SHADOW_ZONE_BOSS_IDS,
 } from '../data/bosses';
 import { MOVES } from '../data/moves';
+import { ITrainerDefinition, buildTrainerBoss, trainerLevel } from '../data/trainers';
 import { PET_TEMPLATES } from '../data/pets';
 import { GameState } from '../state/GameState';
 import { IBattleCombatant } from '../types/battle';
 import { IPetInstance } from '../types/pet';
-import { createPetCombatant } from './Combatant';
+import { createPetCombatant, createPlayerCombatant } from './Combatant';
 
 /** True when all six overworld zone bosses are defeated (Prism Wilds gate; excludes Boss Tower). */
 export function areAllOverworldZoneBossesDefeated(): boolean {
@@ -59,6 +60,28 @@ export function buildBossEnemyTeam(boss: IBossDefinition): IBattleCombatant[] {
     };
     return createPetCombatant(pet, `boss-pet-${i}`);
   });
+}
+
+/**
+ * Fresh enemy team for a Training Zone trainer, scaled to the player's level.
+ * The trainer fights in person with a staff (like the player), in front of their pets.
+ */
+export function buildTrainerEnemyTeam(trainer: ITrainerDefinition, playerLevel: number): IBattleCombatant[] {
+  const boss = buildTrainerBoss(trainer, playerLevel);
+  const pets = buildBossEnemyTeam(boss);
+  applyBossSpecialMoves(pets, boss);
+  // Four fighters share the screen, so label pets by species rather than "Trainer's Pet"
+  for (const c of pets) {
+    const speciesName = c.pet ? PET_TEMPLATES[c.pet.templateId]?.name : undefined;
+    if (speciesName) c.name = speciesName;
+  }
+
+  const level = trainerLevel(trainer, playerLevel);
+  const fighter = createPlayerCombatant(trainer.name, level, trainer.weaponId);
+  fighter.id = 'trainer';
+  fighter.texture = trainer.texture;
+  fighter.level = level;
+  return [fighter, ...pets];
 }
 
 /** Appends boss special moves to the lead enemy (ace) pet. */

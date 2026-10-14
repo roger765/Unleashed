@@ -6,6 +6,8 @@ import { xpForDefeating } from '../data/xp-table';
 import { randomInt } from '../utils/math';
 import { STRUGGLE } from '../data/moves';
 import { getPetMoveAA, spendPetAA } from '../utils/petMoves';
+import { TrainingMode, getTrainingMode } from '../data/trainers';
+import { IPetInstance } from '../types/pet';
 
 /**
  * Spirits earned from one wild pet — scales with level and combat stats (stronger = more).
@@ -29,12 +31,28 @@ export enum BattlePhase {
   BattleOver,
 }
 
+/** Set on fights in the Castle Training Zone. */
+export interface TrainingInfo {
+  trainerId: string;
+  mode: TrainingMode;
+  /** 1-based round (Endurance runs several; every other mode is a single round). */
+  round: number;
+  totalRounds: number;
+  /** Player level when the fight began, so trainer levels stay fixed across Endurance rounds. */
+  playerLevel: number;
+  /** Rewards banked from cleared Endurance rounds, paid out after the last one. */
+  banked: { coins: number; xp: number };
+  /** Sparring only: the team as it was before the fight, restored afterwards. */
+  teamSnapshot?: IPetInstance[];
+}
+
 export interface BattleConfig {
   playerTeam: IBattleCombatant[];
   enemyTeam: IBattleCombatant[];
   isBoss: boolean;
   isWild: boolean;
   returnScene: string;
+  training?: TrainingInfo;
 }
 
 export class BattleManager {
@@ -230,7 +248,7 @@ export class BattleManager {
     let totalCoins = 0;
     let wildSpirits = 0;
     for (const enemy of this.config.enemyTeam) {
-      const enemyLevel = enemy.pet?.level ?? 1;
+      const enemyLevel = enemy.pet?.level ?? enemy.level ?? 1;
       totalXp += xpForDefeating(enemyLevel, avgPlayerLevel);
       totalCoins += enemyLevel * randomInt(2, 5);
       if (this.config.isWild && !this.config.isBoss) {
@@ -241,7 +259,14 @@ export class BattleManager {
     const alivePets = this.config.playerTeam.filter(
       (c) => c.currentHp > 0 && !c.isPlayer,
     ).length;
-    const xpPerPet = alivePets > 0 ? Math.floor(totalXp / alivePets) : 0;
+    let xpPerPet = alivePets > 0 ? Math.floor(totalXp / alivePets) : 0;
+
+    const training = this.config.training;
+    if (training) {
+      const mode = getTrainingMode(training.mode);
+      xpPerPet = Math.floor(xpPerPet * mode.xpMult);
+      totalCoins = Math.floor(totalCoins * mode.coinMult);
+    }
 
     return { xpPerPet, coins: totalCoins, wildSpirits };
   }

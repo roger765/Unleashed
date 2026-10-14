@@ -131,6 +131,30 @@ export class CastleOfMastersScene extends Phaser.Scene {
       });
     });
 
+    // Training Zone doorway on the east side — always open
+    const trainX = (MAP_W - 2.5) * TILE_SIZE;
+    for (let r = 10; r <= 12; r++) {
+      for (let c = MAP_W - 3; c <= MAP_W - 2; c++) {
+        this.add.image(c * TILE_SIZE + TILE_SIZE / 2, r * TILE_SIZE + TILE_SIZE / 2, 'tile-door').setDepth(2);
+      }
+    }
+    this.add.text(trainX, stairY - 3 * TILE_SIZE + 8, 'Training Zone →', {
+      fontSize: '12px', fontFamily: 'Arial', color: '#9fe3a4',
+      stroke: '#000', strokeThickness: 2,
+    }).setOrigin(1, 0.5).setDepth(10);
+    const trainZone = this.add.zone(trainX, stairY, 2 * TILE_SIZE, 3 * TILE_SIZE);
+    this.physics.add.existing(trainZone, true);
+    (trainZone.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
+    this.physics.add.overlap(this.player, trainZone, () => {
+      if (this.transitioning) return;
+      this.transitioning = true;
+      this.cameras.main.fadeOut(300, 0, 0, 0);
+      this.cameras.main.once('camerafadeoutcomplete', () => {
+        this.scene.stop('UIScene');
+        this.scene.start('TrainingZoneScene');
+      });
+    });
+
     this.physics.add.overlap(this.player, exitZone, () => {
       if (this.transitioning) return;
       this.transitioning = true;

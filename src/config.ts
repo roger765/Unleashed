@@ -23,6 +23,7 @@ import { HenryRanchScene } from './scenes/HenryRanchScene';
 import { CastleOfMastersScene } from './scenes/CastleOfMastersScene';
 import { CastleRoomScene } from './scenes/CastleRoomScene';
 import { CastleBasementScene } from './scenes/CastleBasementScene';
+import { TrainingZoneScene } from './scenes/TrainingZoneScene';
 import { SunlitMeadowsScene } from './scenes/SunlitMeadowsScene';
 import { GloomhollowScene } from './scenes/GloomhollowScene';
 import { EmberreachScene } from './scenes/EmberreachScene';
@@ -58,6 +59,7 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
     CastleOfMastersScene,
     CastleRoomScene,
     CastleBasementScene,
+    TrainingZoneScene,
     SunlitMeadowsScene,
     GloomhollowScene,
     EmberreachScene,
