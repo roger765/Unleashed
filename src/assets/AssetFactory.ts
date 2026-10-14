@@ -2512,6 +2512,64 @@ export class AssetFactory {
       g.fillCircle(14, 28, 1);
       AssetFactory.finish(g, 'tile-path', T, T);
     }
+
+    // tile-lava
+    {
+      const g = AssetFactory.gfx(scene);
+      g.fillStyle(0xff5722);
+      g.fillRect(0, 0, T, T);
+      g.fillStyle(0xbf360c);
+      g.fillRect(2, 4, 10, 6);
+      g.fillRect(19, 18, 11, 7);
+      g.fillRect(5, 23, 7, 5);
+      g.fillStyle(0xff8a50);
+      g.fillCircle(22, 8, 4);
+      g.fillCircle(9, 17, 3);
+      g.fillStyle(0xffca28);
+      g.fillCircle(22, 8, 2);
+      g.fillCircle(9, 17, 1);
+      g.fillCircle(26, 28, 1);
+      AssetFactory.finish(g, 'tile-lava', T, T);
+    }
+
+    // tile-ice
+    {
+      const g = AssetFactory.gfx(scene);
+      g.fillStyle(0xb3e5fc);
+      g.fillRect(0, 0, T, T);
+      g.fillStyle(0xe1f5fe);
+      g.fillTriangle(0, 18, 18, 0, 26, 0);
+      g.fillTriangle(0, 30, 30, 0, 32, 4);
+      g.lineStyle(1, 0x81d4fa);
+      g.lineBetween(6, 28, 14, 18);
+      g.lineBetween(14, 18, 12, 10);
+      g.lineBetween(14, 18, 24, 20);
+      g.fillStyle(0xffffff, 0.8);
+      g.fillCircle(24, 26, 1);
+      AssetFactory.finish(g, 'tile-ice', T, T);
+    }
+
+    // tile-snow and tile-snow-b (alternating floor)
+    {
+      const g = AssetFactory.gfx(scene);
+      g.fillStyle(0xf5fbff);
+      g.fillRect(0, 0, T, T);
+      g.fillStyle(0xdcecf5);
+      g.fillCircle(8, 10, 1);
+      g.fillCircle(22, 20, 1);
+      g.fillCircle(14, 28, 1);
+      AssetFactory.finish(g, 'tile-snow', T, T);
+    }
+    {
+      const g = AssetFactory.gfx(scene);
+      g.fillStyle(0xe8f3fa);
+      g.fillRect(0, 0, T, T);
+      g.fillStyle(0xcfe3ee);
+      g.fillCircle(24, 8, 1);
+      g.fillCircle(10, 22, 1);
+      g.fillCircle(28, 28, 1);
+      AssetFactory.finish(g, 'tile-snow-b', T, T);
+    }
   }
 
   // ────────────────────────────────────────────────────────────────

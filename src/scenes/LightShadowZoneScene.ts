@@ -17,6 +17,11 @@ import { NPC } from '../entities/NPC';
 import { DialogueBox } from '../ui/DialogueBox';
 import { BOSSES } from '../data/bosses';
 import { applyBossSpecialMoves, buildBossEnemyTeam } from '../battle/bossUtils';
+import { ZoneLevelScaling, scaledLevel } from '../utils/zoneLevels';
+
+/** Lava hurts the lead pet a little on a timer; ice makes the player slide. */
+const LAVA_TICK_MS = 1500;
+const LAVA_DAMAGE_PERCENT = 5;
 
 const MAP_W = 42;
 const MAP_H = 28;
@@ -27,6 +32,12 @@ export interface ZoneChestConfig {
   ty: number;
   coins: number;
   item?: { itemId: string; quantity: number };
+}
+
+export interface ZoneHazard {
+  kind: 'lava' | 'ice';
+  /** Number of rectangular patches scattered across the map. */
+  patches: number;
 }
 
 export interface LightShadowZoneConfig {
@@ -41,8 +52,15 @@ export interface LightShadowZoneConfig {
   /** Wild pool as [templateId, weight]. */
   wildPool: [string, number][];
   wildCount: number;
-  levelMin: number;
-  levelMax: number;
+  /** Fixed wild level range. Ignored when `scaling` is set. */
+  levelMin?: number;
+  levelMax?: number;
+  /** Wild and boss levels follow the player's level instead of the fixed range. */
+  scaling?: ZoneLevelScaling;
+  hazard?: ZoneHazard;
+  /** Scene the exit portal leads to (default: the Castle basement). */
+  exitScene?: string;
+  exitLabel?: string;
   bossId: string;
   bossNpcName: string;
   bossDialogue: string[];
@@ -50,8 +68,8 @@ export interface LightShadowZoneConfig {
 }
 
 /**
- * Shared implementation of the Light and Shadow zones. Subclasses supply only a config.
- * Players arrive through the Castle basement portals and leave by the portal at the bottom.
+ * Shared implementation of the themed zones (Light, Shadow, Fire, Ice). Subclasses supply only a config.
+ * Players leave by the portal at the bottom (back to the Castle basement unless the config says otherwise).
  */
 export abstract class LightShadowZoneScene extends Phaser.Scene {
   private player!: Player;
@@ -61,6 +79,9 @@ export abstract class LightShadowZoneScene extends Phaser.Scene {
   private interactKey: Phaser.Input.Keyboard.Key | null = null;
   private fightKey: Phaser.Input.Keyboard.Key | null = null;
   private nearNpc = false;
+  private hazardGroup: Phaser.Physics.Arcade.StaticGroup | null = null;
+  private hazardCells = new Set<string>();
+  private nextLavaTick = 0;
   private readonly zone: LightShadowZoneConfig;
 
   protected constructor(zone: LightShadowZoneConfig) {
@@ -76,6 +97,9 @@ export abstract class LightShadowZoneScene extends Phaser.Scene {
     this.bossNpc = null;
     this.bossDialogBlocking = false;
     this.nearNpc = false;
+    this.hazardGroup = null;
+    this.hazardCells = new Set();
+    this.nextLavaTick = 0;
 
     const worldW = MAP_W * TILE_SIZE;
     const worldH = MAP_H * TILE_SIZE;
@@ -88,11 +112,14 @@ export abstract class LightShadowZoneScene extends Phaser.Scene {
       }
     }
 
-    // Scattered obstacles, kept clear of the portal at the bottom centre
+    this.buildHazards();
+
+    // Scattered obstacles, kept clear of the portal at the bottom centre and of hazards
     const walls = this.physics.add.staticGroup();
     for (let i = 0; i < 30; i++) {
       const tx = randomInt(2, MAP_W - 3);
       const ty = randomInt(2, MAP_H - 6);
+      if (this.hazardCells.has(`${tx},${ty}`)) continue;
       walls.create(tx * TILE_SIZE + 16, ty * TILE_SIZE + 16, z.obstacleTile)
         .setTint(z.obstacleTint).setDepth(3);
     }
@@ -104,7 +131,7 @@ export abstract class LightShadowZoneScene extends Phaser.Scene {
     this.tweens.add({ targets: portalGlow, alpha: 0.6, duration: 900, yoyo: true, repeat: -1 });
     const exitZone = this.add.zone(exitX, worldH - 24, 4 * TILE_SIZE, 32);
     this.physics.add.existing(exitZone, true);
-    this.add.text(exitX, worldH - 78, '↓ Portal to Castle Basement', {
+    this.add.text(exitX, worldH - 78, z.exitLabel ?? '↓ Portal to Castle Basement', {
       fontSize: '12px', fontFamily: 'Arial', color: '#ffd700',
       stroke: '#000', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(10);
@@ -123,7 +150,7 @@ export abstract class LightShadowZoneScene extends Phaser.Scene {
       this.cameras.main.fadeOut(300, 0, 0, 0);
       this.cameras.main.once('camerafadeoutcomplete', () => {
         this.scene.stop('UIScene');
-        this.scene.start('CastleBasementScene');
+        this.scene.start(z.exitScene ?? 'CastleBasementScene');
       });
     });
 
@@ -138,7 +165,7 @@ export abstract class LightShadowZoneScene extends Phaser.Scene {
       if (!template) continue;
       const px = randomInt(3, MAP_W - 4) * TILE_SIZE;
       const py = randomInt(3, MAP_H - 8) * TILE_SIZE;
-      const level = randomInt(z.levelMin, z.levelMax);
+      const level = this.wildLevel();
       this.wildPets.push(new WildPet(this, px, py, template, level));
     }
 
@@ -156,7 +183,7 @@ export abstract class LightShadowZoneScene extends Phaser.Scene {
     });
 
     const gs = GameState.getInstance();
-    if (!gs.getFlag(`boss-defeated-${z.bossId}`)) {
+    if (BOSSES[z.bossId] && !gs.getFlag(`boss-defeated-${z.bossId}`)) {
       this.bossNpc = new NPC(
         this,
         (MAP_W / 2) * TILE_SIZE,
@@ -185,8 +212,9 @@ export abstract class LightShadowZoneScene extends Phaser.Scene {
     this.events.once('shutdown', () => cleanupSceneMultiplayer(this));
   }
 
-  update(_time: number, delta: number): void {
+  update(time: number, delta: number): void {
     this.player.update();
+    this.updateHazards(time);
     tickSceneMultiplayer(this, this.player);
 
     if (this.bossNpc) {
@@ -217,6 +245,87 @@ export abstract class LightShadowZoneScene extends Phaser.Scene {
         break;
       }
     }
+  }
+
+  private wildLevel(): number {
+    const z = this.zone;
+    if (z.scaling) {
+      const playerLevel = GameState.getInstance().getState().level;
+      return scaledLevel(playerLevel, randomInt(z.scaling.wildMin, z.scaling.wildMax), z.scaling);
+    }
+    return randomInt(z.levelMin ?? 1, z.levelMax ?? 1);
+  }
+
+  /** Tile rectangles hazards must keep clear of: the portal and spawn, the boss, and every chest. */
+  private reservedRects(): { x0: number; y0: number; x1: number; y1: number }[] {
+    const cx = Math.floor(MAP_W / 2);
+    return [
+      { x0: cx - 4, y0: MAP_H - 6, x1: cx + 4, y1: MAP_H - 1 },
+      { x0: cx - 3, y0: 3, x1: cx + 3, y1: 9 },
+      ...this.zone.chests.map((c) => ({ x0: c.tx - 2, y0: c.ty - 2, x1: c.tx + 2, y1: c.ty + 2 })),
+    ];
+  }
+
+  private buildHazards(): void {
+    const hazard = this.zone.hazard;
+    if (!hazard) return;
+    const texture = hazard.kind === 'lava' ? 'tile-lava' : 'tile-ice';
+    const reserved = this.reservedRects();
+    const group = this.physics.add.staticGroup();
+    let placed = 0;
+    for (let attempt = 0; attempt < 300 && placed < hazard.patches; attempt++) {
+      const w = randomInt(3, 5);
+      const h = randomInt(2, 4);
+      const tx = randomInt(2, MAP_W - 2 - w);
+      const ty = randomInt(2, MAP_H - 6 - h);
+      if (!this.patchFits(tx, ty, w, h, reserved)) continue;
+      for (let y = ty; y < ty + h; y++) {
+        for (let x = tx; x < tx + w; x++) {
+          this.hazardCells.add(`${x},${y}`);
+          group.create(x * TILE_SIZE + 16, y * TILE_SIZE + 16, texture);
+        }
+      }
+      placed++;
+    }
+    this.hazardGroup = group;
+  }
+
+  /** A patch fits if it misses every reserved rectangle and sits a tile away from other patches. */
+  private patchFits(
+    tx: number, ty: number, w: number, h: number,
+    reserved: { x0: number; y0: number; x1: number; y1: number }[],
+  ): boolean {
+    for (const r of reserved) {
+      if (tx <= r.x1 && tx + w - 1 >= r.x0 && ty <= r.y1 && ty + h - 1 >= r.y0) return false;
+    }
+    for (let y = ty - 1; y <= ty + h; y++) {
+      for (let x = tx - 1; x <= tx + w; x++) {
+        if (this.hazardCells.has(`${x},${y}`)) return false;
+      }
+    }
+    return true;
+  }
+
+  private updateHazards(time: number): void {
+    const hazard = this.zone.hazard;
+    if (!hazard || !this.hazardGroup) return;
+    const onHazard = this.physics.overlap(this.player, this.hazardGroup);
+    if (hazard.kind === 'ice') {
+      this.player.setSlippery(onHazard);
+      return;
+    }
+    if (!onHazard || time < this.nextLavaTick) return;
+    this.nextLavaTick = time + LAVA_TICK_MS;
+    const loss = GameState.getInstance().damageLeadPet(LAVA_DAMAGE_PERCENT);
+    if (loss <= 0) return;
+    this.cameras.main.shake(120, 0.003);
+    this.player.setTint(0xff6a2a);
+    this.time.delayedCall(180, () => this.player.clearTint());
+    const num = this.add.text(this.player.x, this.player.y - 30, `-${loss}`, {
+      fontSize: '18px', fontFamily: 'Arial Black, Arial, sans-serif',
+      color: '#ff8a50', stroke: '#000', strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(20);
+    this.tweens.add({ targets: num, y: num.y - 28, alpha: 0, duration: 700, onComplete: () => num.destroy() });
   }
 
   private onMobileInteract(): void {

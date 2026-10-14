@@ -25,6 +25,8 @@ import { CastleRoomScene } from './scenes/CastleRoomScene';
 import { CastleBasementScene } from './scenes/CastleBasementScene';
 import { SunlitMeadowsScene } from './scenes/SunlitMeadowsScene';
 import { GloomhollowScene } from './scenes/GloomhollowScene';
+import { EmberreachScene } from './scenes/EmberreachScene';
+import { FrostmoorScene } from './scenes/FrostmoorScene';
 import { MoveShowcaseScene } from './scenes/MoveShowcaseScene';
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {
@@ -57,6 +59,8 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
     CastleBasementScene,
     SunlitMeadowsScene,
     GloomhollowScene,
+    EmberreachScene,
+    FrostmoorScene,
     MoveShowcaseScene,
   ],
 };
