@@ -12,6 +12,8 @@ import { buildPlayerTeamFromState } from '../battle/Combatant';
 import { buildBossEnemyTeam, applyBossSpecialMoves } from '../battle/bossUtils';
 import { BattleConfig } from '../battle/BattleManager';
 import { initSceneMultiplayer, tickSceneMultiplayer, cleanupSceneMultiplayer } from '../multiplayer/sceneMultiplayer';
+import { FIRE_ICE_SCALING, ZoneLevelScaling, scaledLevel, scaleBossToLevel } from '../utils/zoneLevels';
+import { BossRewards, claimBossRewards } from '../utils/bossRewards';
 
 const MAP_W = 20;
 const MAP_H = 16;
@@ -19,10 +21,10 @@ const MAP_H = 16;
 export type RoomId =
   | 'boots' | 'chest' | 'helmet'
   | 'basement-1' | 'basement-2' | 'basement-3'
-  | 'sanctum';
+  | 'sanctum' | 'wyrm';
 
 const ROOM_IDS: RoomId[] = [
-  'boots', 'chest', 'helmet', 'basement-1', 'basement-2', 'basement-3', 'sanctum',
+  'boots', 'chest', 'helmet', 'basement-1', 'basement-2', 'basement-3', 'sanctum', 'wyrm',
 ];
 
 interface RoomConfig {
@@ -39,6 +41,11 @@ interface RoomConfig {
   exitLabel?: string;
   /** Tint applied to floor and wall tiles. */
   tint?: number;
+  /** Boss level follows the player: scaling rules plus the offset from the player's level. */
+  scaling?: ZoneLevelScaling;
+  bossOffset?: number;
+  /** Paid out once, the first time the boss is beaten. */
+  rewards?: BossRewards;
 }
 
 const ROOM_CONFIGS: Record<RoomId, RoomConfig> = {
@@ -133,6 +140,22 @@ const ROOM_CONFIGS: Record<RoomId, RoomConfig> = {
       'Press R. This is the last fight.',
     ],
   },
+  wyrm: {
+    bossId: 'twilight-wyrm',
+    bossName: 'Twilight Wyrm',
+    label: 'Steam Sanctum',
+    exitScene: 'ShrubWoodlandsScene',
+    exitLabel: '↓ Back to Shrub Woodlands',
+    tint: 0xcfd8dc,
+    scaling: FIRE_ICE_SCALING,
+    bossOffset: 5,
+    rewards: { petTemplateId: 'steamwyrm' },
+    intro: [
+      'Steam rises where fire and ice collide.',
+      'You carry both halves of the key. Both were earned the hard way.',
+      'I am fire and frost in one body. Press R. This is the last fight.',
+    ],
+  },
 };
 
 export class CastleRoomScene extends Phaser.Scene {
@@ -148,8 +171,8 @@ export class CastleRoomScene extends Phaser.Scene {
   private roomId: RoomId = 'boots';
   private config!: RoomConfig;
 
-  constructor() {
-    super({ key: 'CastleRoomScene' });
+  constructor(key = 'CastleRoomScene') {
+    super({ key });
   }
 
   init(data: { roomId?: RoomId }): void {
@@ -252,8 +275,9 @@ export class CastleRoomScene extends Phaser.Scene {
     this.interactKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.E) ?? null;
     this.fightKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.R) ?? null;
 
-    GameState.getInstance().setCurrentScene('CastleRoomScene');
+    GameState.getInstance().setCurrentScene(this.scene.key);
     this.scene.launch('UIScene');
+    this.announceRewards();
 
     initSceneMultiplayer(this);
     this.events.once('shutdown', () => cleanupSceneMultiplayer(this));
@@ -282,6 +306,17 @@ export class CastleRoomScene extends Phaser.Scene {
     }
   }
 
+  /** After a boss win, hands over its first-time rewards and tells the player what they got. */
+  private announceRewards(): void {
+    if (!this.config.rewards) return;
+    const lines = claimBossRewards(this.config.bossId, this.config.rewards);
+    if (lines.length === 0) return;
+    this.dialogueBlocking = true;
+    new DialogueBox(this).show(this.config.bossName, lines, () => {
+      this.dialogueBlocking = false;
+    });
+  }
+
   private onBossTalk(): void {
     if (this.dialogueBlocking) return;
     this.dialogueBlocking = true;
@@ -292,7 +327,7 @@ export class CastleRoomScene extends Phaser.Scene {
   }
 
   private startBossBattle(): void {
-    const boss = BOSSES[this.config.bossId];
+    let boss = BOSSES[this.config.bossId];
     if (!boss) return;
     const gs = GameState.getInstance();
     if (gs.getFlag(`boss-defeated-${this.config.bossId}`)) {
@@ -301,6 +336,10 @@ export class CastleRoomScene extends Phaser.Scene {
     }
 
     const state = gs.getState();
+    const { scaling } = this.config;
+    if (scaling) {
+      boss = scaleBossToLevel(boss, scaledLevel(state.level, this.config.bossOffset ?? 0, scaling), scaling);
+    }
     const playerTeam = buildPlayerTeamFromState(state);
     const enemyTeam = buildBossEnemyTeam(boss);
     applyBossSpecialMoves(enemyTeam, boss);
@@ -315,7 +354,7 @@ export class CastleRoomScene extends Phaser.Scene {
       enemyTeam,
       isBoss: true,
       isWild: false,
-      returnScene: 'CastleRoomScene',
+      returnScene: this.scene.key,
     };
 
     this.scene.start('BattleScene', { battleConfig: config });

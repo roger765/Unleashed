@@ -23,6 +23,11 @@ export class EmberreachScene extends LightShadowZoneScene {
       exitScene: 'ShrubWoodlandsScene',
       exitLabel: '↓ Back to Shrub Woodlands',
       bossId: 'emberlord-vulkar',
+      bossRewards: {
+        keyHalf: 'the Fire half of the Steam Sanctum key',
+        tmMoveId: 'inferno',
+        petTemplateId: 'infernal',
+      },
       bossNpcName: 'Emberlord Vulkar',
       bossDialogue: [
         'Few cross Emberreach without a scorch or two.',

@@ -283,6 +283,50 @@ export const BOSSES: Record<string, IBossDefinition> = {
     specialMoveIds: ['holy-nova', 'void-crush', 'eclipse'],
     coinsReward: 2000,
   },
+
+  // ── Fire & Ice zone bosses and the Steam Sanctum fusion boss ──────
+  // Levels here are the reference shape (lead level, then how far each pet trails it).
+  // The zones and the arena re-level the whole team to the player's level at fight time.
+  'emberlord-vulkar': {
+    id: 'emberlord-vulkar',
+    name: 'Emberlord Vulkar',
+    level: 45,
+    team: [
+      { petTemplateId: 'calderon', level: 45 },
+      { petTemplateId: 'phoenyx', level: 44 },
+      { petTemplateId: 'infernal', level: 43 },
+      { petTemplateId: 'magmite', level: 42 },
+    ],
+    specialMoveIds: ['inferno', 'magma-fist'],
+    coinsReward: 900,
+  },
+  'frostqueen-hailey': {
+    id: 'frostqueen-hailey',
+    name: 'Frostqueen Hailey',
+    level: 45,
+    team: [
+      { petTemplateId: 'glaciarch', level: 45 },
+      { petTemplateId: 'whitewind', level: 44 },
+      { petTemplateId: 'permafrost', level: 43 },
+      { petTemplateId: 'frostix', level: 42 },
+    ],
+    specialMoveIds: ['absolute-zero', 'blizzard-blast'],
+    coinsReward: 900,
+  },
+  'twilight-wyrm': {
+    id: 'twilight-wyrm',
+    name: 'Twilight Wyrm',
+    level: 50,
+    team: [
+      { petTemplateId: 'steamwyrm', level: 50 },
+      { petTemplateId: 'infernal', level: 49 },
+      { petTemplateId: 'permafrost', level: 49 },
+      { petTemplateId: 'phoenyx', level: 48 },
+      { petTemplateId: 'glaciarch', level: 48 },
+    ],
+    specialMoveIds: ['steam-burst', 'inferno', 'absolute-zero'],
+    coinsReward: 2000,
+  },
 };
 
 /** All boss ids that count toward "champion" / defeat tracking in battle results. */
@@ -308,6 +352,9 @@ export const ALL_REGISTERED_BOSS_IDS: string[] = [
   'sunlit-sovereign',
   'gloom-sovereign',
   'twilight-sovereign',
+  'emberlord-vulkar',
+  'frostqueen-hailey',
+  'twilight-wyrm',
 ];
 
 /** Overworld zone guardians only (excludes Boss Tower). Used for Prism Wilds unlock. */
@@ -332,3 +379,6 @@ export const BASEMENT_BOSS_IDS: string[] = ['basement-1', 'basement-2', 'basemen
 
 /** Zone bosses of the Light and Shadow zones. Each grants half of the Eclipse Sanctum key. */
 export const LIGHT_SHADOW_ZONE_BOSS_IDS: string[] = ['sunlit-sovereign', 'gloom-sovereign'];
+
+/** Zone bosses of Emberreach and Frostmoor. Each grants half of the Steam Sanctum key. */
+export const FIRE_ICE_ZONE_BOSS_IDS: string[] = ['emberlord-vulkar', 'frostqueen-hailey'];

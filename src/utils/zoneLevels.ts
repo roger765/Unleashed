@@ -1,4 +1,5 @@
 import { clamp } from './math';
+import { IBossDefinition } from '../data/bosses';
 
 /** How a zone's wild pets and bosses follow the player's level. Offsets are added to the player level. */
 export interface ZoneLevelScaling {
@@ -23,4 +24,19 @@ export const FIRE_ICE_SCALING: ZoneLevelScaling = {
 /** Player level plus an offset, held between the scaling's floor and cap. */
 export function scaledLevel(playerLevel: number, offset: number, scaling: ZoneLevelScaling): number {
   return clamp(playerLevel + offset, scaling.floor, scaling.cap);
+}
+
+/**
+ * Copy of a boss with its lead set to `level` and every other pet keeping the same distance
+ * below the lead as in the definition, all held between the scaling's floor and cap.
+ */
+export function scaleBossToLevel(boss: IBossDefinition, level: number, scaling: ZoneLevelScaling): IBossDefinition {
+  return {
+    ...boss,
+    level,
+    team: boss.team.map((entry) => ({
+      ...entry,
+      level: clamp(level - (boss.level - entry.level), scaling.floor, scaling.cap),
+    })),
+  };
 }

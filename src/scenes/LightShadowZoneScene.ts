@@ -17,7 +17,8 @@ import { NPC } from '../entities/NPC';
 import { DialogueBox } from '../ui/DialogueBox';
 import { BOSSES } from '../data/bosses';
 import { applyBossSpecialMoves, buildBossEnemyTeam } from '../battle/bossUtils';
-import { ZoneLevelScaling, scaledLevel } from '../utils/zoneLevels';
+import { ZoneLevelScaling, scaledLevel, scaleBossToLevel } from '../utils/zoneLevels';
+import { BossRewards, claimBossRewards } from '../utils/bossRewards';
 
 /** Lava hurts the lead pet a little on a timer; ice makes the player slide. */
 const LAVA_TICK_MS = 1500;
@@ -62,6 +63,8 @@ export interface LightShadowZoneConfig {
   exitScene?: string;
   exitLabel?: string;
   bossId: string;
+  /** Paid out once, the first time the boss is beaten. */
+  bossRewards?: BossRewards;
   bossNpcName: string;
   bossDialogue: string[];
   chests: ZoneChestConfig[];
@@ -208,6 +211,7 @@ export abstract class LightShadowZoneScene extends Phaser.Scene {
 
     if (!this.scene.isActive('UIScene')) this.scene.launch('UIScene');
     gs.setCurrentScene(z.key);
+    this.announceBossRewards();
     initSceneMultiplayer(this);
     this.events.once('shutdown', () => cleanupSceneMultiplayer(this));
   }
@@ -245,6 +249,18 @@ export abstract class LightShadowZoneScene extends Phaser.Scene {
         break;
       }
     }
+  }
+
+  /** After a boss win, hands over its first-time rewards and tells the player what they got. */
+  private announceBossRewards(): void {
+    const z = this.zone;
+    if (!z.bossRewards) return;
+    const lines = claimBossRewards(z.bossId, z.bossRewards);
+    if (lines.length === 0) return;
+    this.bossDialogBlocking = true;
+    new DialogueBox(this).show(z.bossNpcName, lines, () => {
+      this.bossDialogBlocking = false;
+    });
   }
 
   private wildLevel(): number {
@@ -366,8 +382,13 @@ export abstract class LightShadowZoneScene extends Phaser.Scene {
   }
 
   private startBossBattle(): void {
-    const boss = BOSSES[this.zone.bossId];
+    let boss = BOSSES[this.zone.bossId];
     if (!boss) return;
+    const scaling = this.zone.scaling;
+    if (scaling) {
+      const playerLevel = GameState.getInstance().getState().level;
+      boss = scaleBossToLevel(boss, scaledLevel(playerLevel, scaling.bossOffset, scaling), scaling);
+    }
 
     const gs = GameState.getInstance();
     const playerTeam = buildPlayerTeamFromState(gs.getState());

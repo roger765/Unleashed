@@ -23,6 +23,11 @@ export class FrostmoorScene extends LightShadowZoneScene {
       exitScene: 'ShrubWoodlandsScene',
       exitLabel: '↓ Back to Shrub Woodlands',
       bossId: 'frostqueen-hailey',
+      bossRewards: {
+        keyHalf: 'the Ice half of the Steam Sanctum key',
+        tmMoveId: 'absolute-zero',
+        petTemplateId: 'permafrost',
+      },
       bossNpcName: 'Frostqueen Hailey',
       bossDialogue: [
         'The moor is quiet because I like it that way.',
