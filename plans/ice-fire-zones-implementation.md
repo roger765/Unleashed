@@ -7,6 +7,17 @@ The kid-readable draft is `plans/ice-fire-zones.md`. This file is the engineerin
 
 Add two overworld zones, **Emberreach** (Fire) and **Frostmoor** (Ice), plus a fusion arena. This needs two new pet types, 19 new pet species, 13 new moves, two zone bosses, a fusion boss, new items, lava/ice terrain, and map entries. Scene work is small because `LightShadowZoneScene` already takes a config object. The bulk of the effort is content (pets, sprites, move effects) and the type-chart change.
 
+## Status: all eight phases built
+
+Where the build differs from the phases below:
+
+- **Phase 4:** Fire and Ice join old-zone spawns at half the Light/Shadow base rate (0.5% against 1%), because charms and lures need a baseline to multiply.
+- **Phase 5:** the zone class gained optional `scaling`, `hazard`, `exitScene` and `exitData` settings. A dev-only `?scene=<SceneKey>` shortcut was added to test scenes directly.
+- **Phase 6:** the Steam Sanctum is its own scene (`SteamSanctumScene`) that reuses the castle room scene, so it has a scene key of its own. The Wyrm drops Steamwyrm. Both zone bosses give a TM and a rare pet. The two key halves are the boss-defeated flags.
+- **Phase 7:** the world map is display-only, so the way in is three portals on the east wall of Shrub Woodlands (Steam Sanctum sealed until both bosses fall), plus matching map nodes. Both zones are always open.
+- **Type symbols:** Fire is red and Ice is white on battle move buttons, the Pet Book and the balance sheet. Attack animations keep their own colours.
+- **Phase 8:** no multiplayer changes were needed (scene names pass through as plain strings). The balance-sheet script round-trips the new types, pets, moves and bosses.
+
 ## Content locked in from the doc
 
 **Wild pets.** Evolved forms never spawn in the wild.
