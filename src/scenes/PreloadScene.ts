@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from '../constants';
 import { AssetFactory } from '../assets/AssetFactory';
+import { GameState } from '../state/GameState';
+import { SaveManager } from '../state/SaveManager';
 
 export class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -58,7 +60,16 @@ export class PreloadScene extends Phaser.Scene {
       onComplete: () => {
         statusText.setText('Ready!');
         this.time.delayedCall(400, () => {
-          const showcase = import.meta.env.DEV && new URLSearchParams(window.location.search).has('showcase');
+          const params = new URLSearchParams(window.location.search);
+          const showcase = import.meta.env.DEV && params.has('showcase');
+          // Dev only: ?scene=<SceneKey> jumps straight into a scene using the saved game, if any.
+          const devScene = import.meta.env.DEV ? params.get('scene') : null;
+          if (devScene && this.scene.manager.keys[devScene]) {
+            const save = SaveManager.load();
+            if (save) GameState.getInstance().setState(save);
+            this.scene.start(devScene);
+            return;
+          }
           this.scene.start(showcase ? 'MoveShowcaseScene' : 'MainMenuScene');
         });
       },
