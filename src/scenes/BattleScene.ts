@@ -18,6 +18,7 @@ import { AudioManager } from '../audio/AudioManager';
 import { ITEMS } from '../data/items';
 import { ALL_REGISTERED_BOSS_IDS } from '../data/bosses';
 import { ItemType } from '../types/item';
+import { PetType } from '../types/pet';
 import { isTouchDevice } from '../utils/mobile';
 import { getMoveMaxAA, petNeedsFeeding, refillPetAA } from '../utils/petMoves';
 
@@ -29,6 +30,8 @@ const TYPE_COLORS: Record<number, number> = {
   4: 0x9e9e9e, // Normal
   5: 0xffd54f, // Light
   6: 0x4a148c, // Shadow
+  7: 0xe53935, // Fire
+  8: 0xffffff, // Ice
 };
 
 const TYPE_COLOR_STR: Record<number, string> = {
@@ -39,6 +42,8 @@ const TYPE_COLOR_STR: Record<number, string> = {
   4: '#9E9E9E',
   5: '#FFD54F',
   6: '#4A148C',
+  7: '#E53935',
+  8: '#FFFFFF',
 };
 
 interface SpriteEntry {
@@ -267,7 +272,11 @@ export class BattleScene extends Phaser.Scene {
         this, px, py + 35 + i * this.btnStep,
         `${i + 1}. ${move.name} ${categoryLabel(move.category)} Pow:${move.power}${aaLabel}`,
         () => this.onSelectMove(i),
-        { width: 350, height: this.btnH, fontSize: '14px', fillColor: color },
+        {
+          width: 350, height: this.btnH, fontSize: '14px', fillColor: color,
+          // A white Ice button needs dark text and a light hover state to stay readable.
+          ...(move.type === PetType.Ice && !spent ? { textColor: '#1a1a2e', hoverColor: 0xdceaf2 } : {}),
+        },
       );
       btn.setDepth(10);
       this.actionContent.push(btn);
