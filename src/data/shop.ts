@@ -50,8 +50,6 @@ export const SHOP_ITEMS = [
   { itemId: 'ice-lure', category: 'Lures' },
   { itemId: 'light-stone', category: 'Stones' },
   { itemId: 'shadow-stone', category: 'Stones' },
-  { itemId: 'fire-stone', category: 'Stones' },
-  { itemId: 'ice-stone', category: 'Stones' },
 ];
 
 // ── TMs: one per move, grouped by move type (boss specials separate) ──
