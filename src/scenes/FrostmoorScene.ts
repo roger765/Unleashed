@@ -37,7 +37,7 @@ export class FrostmoorScene extends LightShadowZoneScene {
       ],
       chests: [
         { id: 'frost-1', tx: 28, ty: 8, coins: 300, item: { itemId: 'ice-lure', quantity: 2 } },
-        { id: 'frost-2', tx: 7, ty: 14, coins: 400, item: { itemId: 'ice-stone', quantity: 1 } },
+        { id: 'frost-2', tx: 7, ty: 14, coins: 400, item: { itemId: 'pet-food', quantity: 2 } },
       ],
     });
   }

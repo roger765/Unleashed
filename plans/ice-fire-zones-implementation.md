@@ -11,7 +11,7 @@ Add two overworld zones, **Emberreach** (Fire) and **Frostmoor** (Ice), plus a f
 
 Where the build differs from the phases below:
 
-- **Phase 4:** Fire and Ice join old-zone spawns at half the Light/Shadow base rate (0.5% against 1%), because charms and lures need a baseline to multiply.
+- **Phase 4:** no Fire or Ice stones were kept: those pets evolve with spirits only, and the chests that held stones hold Pet Food. Fire and Ice join old-zone spawns at half the Light/Shadow base rate (0.5% against 1%), because charms and lures need a baseline to multiply.
 - **Phase 5:** the zone class gained optional `scaling`, `hazard`, `exitScene` and `exitData` settings. A dev-only `?scene=<SceneKey>` shortcut was added to test scenes directly.
 - **Phase 6:** the Steam Sanctum is its own scene (`SteamSanctumScene`) that reuses the castle room scene, so it has a scene key of its own. The Wyrm drops Steamwyrm. Both zone bosses give a TM and a rare pet. The two key halves are the boss-defeated flags.
 - **Phase 7:** the world map is display-only, so the way in is three portals on the east wall of Shrub Woodlands (Steam Sanctum sealed until both bosses fall), plus matching map nodes. Both zones are always open.
@@ -53,7 +53,7 @@ Total: 10 wild + 8 evolved + 1 = **19 species**.
 2. **Heat Haze and Chill.** Moves have no status effects (`IMove` has `power`, `category` and `type` only). Building a status system is a separate project, so these ship as low-power damage moves with flavour text. Say so if you want real debuffs.
 3. **Fusion arena.** It reuses `CastleRoomScene` as a new room id (`wyrm`), the way the Eclipse Sanctum works. It is entered from a new locked-until-both-bosses map node, so no new scene class is needed. The arena has the boss only, no wild pets (the doc's last question; easy to add later).
 4. **Fire and Ice pets in old zones.** Charms and lures raise spawn odds of the type in old zones (existing behaviour for Light/Shadow). I'll add Fire and Ice to `BOOSTABLE_TYPES` so those items do something.
-5. **Evolution stones.** Fire and Ice pets need a `fire-stone` or `ice-stone` plus spirits to evolve, matching Light/Shadow.
+5. **Evolution.** Fire and Ice pets evolve with spirits alone. There are no Fire or Ice stones (Light and Shadow pets still need theirs).
 6. **Level scaling.** Wild pets: player level -3 to +2, floor 20, cap 60. Bosses: player level +3, same floor and cap. Fusion boss: player level +5.
 
 ## Prerequisite
@@ -105,7 +105,6 @@ Each phase ends with `npx tsc --noEmit` clean and a commit.
   - `cinder-mail`, `frost-cloak` (+defense and 35% resist)
   - `fire-charm-1..3`, `ice-charm-1..3`
   - `fire-lure`, `ice-lure`
-  - `fire-stone`, `ice-stone`
 - `GameState.evolutionStoneFor`: add the two stones. `utils/spawn.ts`: add types to `BOOSTABLE_TYPES`. `BagUI.ts` lines ~169 and ~245: resist list and spawn-multiplier text.
 - Verify: buy, equip and use each item type once.
 

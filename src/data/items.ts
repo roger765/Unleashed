@@ -463,22 +463,6 @@ export const ITEMS: Record<string, IItem> = {
     spawnMultiplier: 4,
     lureDurationMs: 600000,
   },
-  'fire-stone': {
-    id: 'fire-stone',
-    name: 'Fire Stone',
-    itemType: ItemType.EvoStone,
-    description: 'Used with spirits to evolve a Fire pet.',
-    buyPrice: 400,
-    stoneType: PetType.Fire,
-  },
-  'ice-stone': {
-    id: 'ice-stone',
-    name: 'Ice Stone',
-    itemType: ItemType.EvoStone,
-    description: 'Used with spirits to evolve an Ice pet.',
-    buyPrice: 400,
-    stoneType: PetType.Ice,
-  },
 };
 
 // ── TMs: one single-use item per move, generated from the move table ──

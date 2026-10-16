@@ -37,7 +37,7 @@ export class EmberreachScene extends LightShadowZoneScene {
       ],
       chests: [
         { id: 'ember-1', tx: 6, ty: 8, coins: 300, item: { itemId: 'fire-lure', quantity: 2 } },
-        { id: 'ember-2', tx: 29, ty: 14, coins: 400, item: { itemId: 'fire-stone', quantity: 1 } },
+        { id: 'ember-2', tx: 29, ty: 14, coins: 400, item: { itemId: 'pet-food', quantity: 2 } },
       ],
     });
   }
