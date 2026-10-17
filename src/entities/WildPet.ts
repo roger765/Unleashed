@@ -3,6 +3,7 @@ import { IPetTemplate } from '../types/pet';
 import { randomInt } from '../utils/math';
 import { GameState } from '../state/GameState';
 import { LEVEL_CAP } from '../constants';
+import { attachPetMotion } from '../fx/petMotion';
 
 type WildPetState = 'idle' | 'roaming' | 'chasing';
 
@@ -43,6 +44,12 @@ export class WildPet extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
     this.setScale(1.5);
     this.setDepth(4);
+    // Physics-driven, so only tilt and squash — never move x/y
+    attachPetMotion(this, template.id, {
+      isMoving: () => this.petState !== 'idle',
+      staticPosition: true,
+      intensity: 0.6,
+    });
 
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(this.width * 0.6, this.height * 0.6);

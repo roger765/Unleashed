@@ -1,5 +1,6 @@
 import { ITEMS } from '../data/items';
 import Phaser from 'phaser';
+import { attachPetMotion } from '../fx/petMotion';
 import { SCREEN_WIDTH, SCREEN_HEIGHT, MAX_TEAM_SIZE, MAX_PET_NAME_LENGTH, SPIRITS_PER_PET_LEVEL } from '../constants';
 import { GameState } from '../state/GameState';
 import { EVOLUTION_SPIRIT_COST, getEvolutionDef } from '../data/evolutions';
@@ -154,7 +155,11 @@ export class PetBookUI {
     const left = cx - 235;
     const top = cy - 180;
 
-    add(this.scene.add.image(left + 40, top + 50, pet.templateId).setScale(2.5));
+    {
+      const hero = this.scene.add.image(left + 40, top + 50, pet.templateId).setScale(2.5);
+      attachPetMotion(hero, pet.templateId);
+      add(hero);
+    }
     add(this.scene.add.text(left + 100, top + 15, pet.nickname, {
       fontSize: '22px', fontFamily: 'Arial Black', color: '#ffd700',
     }));
@@ -464,6 +469,7 @@ export class PetBookUI {
         }
 
         const sprite = this.scene.add.image(x, y, pet.templateId).setScale(2);
+        attachPetMotion(sprite, pet.templateId);
         sprite.setInteractive({ useHandCursor: true });
         sprite.on('pointerdown', () => this.openDetail(pet, i));
         this.container.add(sprite);
@@ -563,6 +569,7 @@ export class PetBookUI {
         const y = cy + 58 + Math.floor(slot / 4) * STORAGE_ROW_PITCH;
 
         const sprite = this.scene.add.image(x, y, pet.templateId).setScale(1.5);
+        attachPetMotion(sprite, pet.templateId);
         sprite.setInteractive({ useHandCursor: true });
         sprite.on('pointerdown', () => this.openDetail(pet, null));
         this.container.add(sprite);

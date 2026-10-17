@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { attachPetMotion } from '../fx/petMotion';
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from '../constants';
 import { IBattleCombatant, IDamageResult } from '../types/battle';
 import { AttackCategory } from '../types/move';
@@ -144,6 +145,7 @@ export class BattleScene extends Phaser.Scene {
 
       const highlight = this.add.graphics().setDepth(1);
       const sprite = this.add.image(x, y, c.texture ?? c.pet?.templateId ?? 'player').setScale(2).setDepth(2);
+      if (!c.texture && c.pet) attachPetMotion(sprite, c.pet.templateId);
       const nameText = this.add.text(x, y + 55, `${c.name} Lv${c.pet?.level ?? c.level ?? 1}`, {
         fontSize: '13px', fontFamily: 'Arial', color: '#ffffff',
       }).setOrigin(0.5).setDepth(2);
@@ -168,6 +170,7 @@ export class BattleScene extends Phaser.Scene {
       const textureKey = c.isPlayer ? 'player' : (c.pet?.templateId ?? 'player');
       const highlight = this.add.graphics().setDepth(1);
       const sprite = this.add.image(x, y, textureKey).setScale(2).setDepth(2);
+      if (!c.isPlayer && c.pet) attachPetMotion(sprite, c.pet.templateId);
       const nameText = this.add.text(x, y + 55, `${c.name} Lv${c.pet?.level ?? 1}`, {
         fontSize: '13px', fontFamily: 'Arial', color: '#ffffff',
       }).setOrigin(0.5).setDepth(2);
