@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 
 /**
- * Polygon-based pet art for Rock, Nature, Wood and Water pets (48x48 canvas).
+ * Polygon-based pet art for Rock, Nature, Wood, Water, Light and Shadow pets (48x48 canvas).
  * Every pet gets its own silhouette; evolved forms reuse the base pet's
  * shape plus gold trim and extra parts so they read as upgrades.
  */
@@ -133,6 +133,37 @@ function eyes(g: G, cx: number, cy: number, spacing = 10, size = 3): void {
 /** Small gold crown-style accent used on many evolutions. */
 function gem(g: G, x: number, y: number, color = GOLD, r = 3): void {
   P(g, color, ngon(x, y, r, 4, 0));
+}
+
+
+function ellipse(cx: number, cy: number, rx: number, ry: number, n = 18): Pt[] {
+  return Array.from({ length: n }, (_, i) => {
+    const a = (i / n) * Math.PI * 2;
+    return [cx + Math.cos(a) * rx, cy + Math.sin(a) * ry] as Pt;
+  });
+}
+
+function arcPts(cx: number, cy: number, r: number, a0: number, a1: number, n = 12): Pt[] {
+  return Array.from({ length: n + 1 }, (_, i) => {
+    const a = a0 + ((a1 - a0) * i) / n;
+    return [cx + Math.cos(a) * r, cy + Math.sin(a) * r] as Pt;
+  });
+}
+
+/** Soft translucent aura behind a Light pet. */
+function glow(g: G, cx: number, cy: number, r: number, color: number): void {
+  for (let i = 3; i >= 1; i--) P(g, color, ellipse(cx, cy, (r * i) / 3, (r * i) / 3, 22), 0.13);
+}
+
+/** Glowing eyes for Shadow pets: dark socket, coloured glint, white catch-light. */
+function glint(g: G, cx: number, cy: number, spacing: number, size: number, color: number): void {
+  const xs = [cx - spacing / 2, cx + spacing / 2];
+  g.fillStyle(0x05000d);
+  for (const x of xs) g.fillCircle(x * K, cy * K, size * K);
+  g.fillStyle(color);
+  for (const x of xs) g.fillCircle(x * K, cy * K, size * 0.62 * K);
+  g.fillStyle(0xffffff, 0.85);
+  for (const x of xs) g.fillCircle((x - size * 0.25) * K, (cy - size * 0.25) * K, size * 0.2 * K);
 }
 
 // ── ROCK ─────────────────────────────────────────────────────────
@@ -761,7 +792,170 @@ const WATER: Record<string, (g: G) => void> = {
   },
 };
 
-const ALL: Record<string, (g: G) => void> = { ...ROCK, ...NATURE, ...WOOD, ...WATER };
+// ── LIGHT ────────────────────────────────────────────────────────
+
+const LIGHT: Record<string, (g: G) => void> = {
+  glimmer: (g) => {
+    glow(g, 24, 24, 22, 0xfff59d);
+    P(g, 0xfff176, star(24, 24, 18, 6, 4));
+    P(g, 0xffee58, ngon(24, 24, 10, 8));
+    gem(g, 8, 10, 0xffffff, 3);
+    gem(g, 41, 37, 0xffffff, 2.5);
+    gem(g, 39, 9, 0xfff59d, 2);
+    eyes(g, 24, 24, 7, 2.5);
+  },
+  luminar: (g) => {
+    glow(g, 24, 24, 23, 0xffe082);
+    P(g, 0xffd54f, star(24, 24, 23, 8, 8));
+    P(g, 0xfff176, star(24, 24, 16, 10, 8, -Math.PI / 2 + Math.PI / 8));
+    P(g, 0xffffff, ngon(24, 24, 10, 10));
+    L(g, 2, GOLD, star(24, 24, 23, 8, 8));
+    gem(g, 6, 8, GOLD, 2.5);
+    gem(g, 42, 40, GOLD, 2.5);
+    eyes(g, 24, 24, 8, 3);
+  },
+  dawnling: (g) => {
+    for (let i = 0; i < 5; i++) {
+      const a = Math.PI + 0.25 + (i * (Math.PI - 0.5)) / 4;
+      const b0: Pt = [24 + Math.cos(a - 0.13) * 18, 34 + Math.sin(a - 0.13) * 18];
+      const b1: Pt = [24 + Math.cos(a + 0.13) * 18, 34 + Math.sin(a + 0.13) * 18];
+      P(g, 0xffcc80, [b0, [24 + Math.cos(a) * 25, 34 + Math.sin(a) * 25], b1]);
+    }
+    P(g, 0xffb74d, arcPts(24, 34, 16, Math.PI, Math.PI * 2, 14));
+    P(g, 0xffd180, arcPts(24, 34, 11, Math.PI, Math.PI * 2, 14));
+    rect(g, 0xf06292, 3, 33, 42, 9, 4);
+    rect(g, 0xf8bbd0, 8, 38, 32, 3, 1.5);
+    eyes(g, 24, 28, 10, 3);
+  },
+  solstice: (g) => {
+    glow(g, 24, 26, 23, 0xffb74d);
+    P(g, 0xff9800, star(24, 26, 23, 14, 12));
+    P(g, 0xffb74d, star(24, 26, 17, 12, 12, -Math.PI / 2 + Math.PI / 12));
+    P(g, 0xffe082, ngon(24, 26, 12, 12));
+    L(g, 3, GOLD, star(24, 26, 23, 14, 12));
+    eyes(g, 24, 26, 9, 3);
+  },
+  halo: (g) => {
+    glow(g, 24, 28, 20, 0xe3f2fd);
+    P(g, 0xe1f5fe, leaf(18, 28, 15, 5, Math.PI + 0.45));
+    P(g, 0xe1f5fe, leaf(30, 28, 15, 5, -0.45));
+    P(g, 0xffffff, [[24, 14], [34, 20], [35, 32], [30, 43], [24, 38], [18, 43], [13, 32], [14, 20]]);
+    P(g, 0xe3f2fd, [[24, 20], [30, 25], [30, 33], [24, 36], [18, 33], [18, 25]]);
+    L(g, 4, GOLD, ellipse(24, 9, 11, 4, 20));
+    eyes(g, 24, 28, 8, 2.5);
+  },
+  prismoth: (g) => {
+    const wing = (m: number) => {
+      const pts = (p: Pt[]): Pt[] => p.map(([x, y]) => [m < 0 ? 48 - x : x, y] as Pt);
+      P(g, 0xef5350, pts([[22, 24], [4, 5], [2, 22], [12, 31]]));
+      P(g, 0xffa726, pts([[21, 24], [9, 11], [8, 22], [14, 28]]));
+      P(g, 0x26c6da, pts([[22, 28], [8, 34], [11, 45], [22, 38]]));
+      P(g, 0xab47bc, pts([[21, 30], [12, 36], [14, 42], [21, 37]]));
+    };
+    wing(1);
+    wing(-1);
+    seg(g, 1.5, 0xfff8e1, 22, 14, 14, 4);
+    seg(g, 1.5, 0xfff8e1, 26, 14, 34, 4);
+    gem(g, 14, 4, 0xffffff, 2);
+    gem(g, 34, 4, 0xffffff, 2);
+    rect(g, 0xfff8e1, 20, 13, 8, 30, 4);
+    eyes(g, 24, 20, 6, 2);
+  },
+  aurelion: (g) => {
+    glow(g, 24, 26, 24, 0xffe082);
+    P(g, 0xffb300, star(24, 26, 23, 16, 14));
+    P(g, 0xffca28, star(24, 26, 18, 13, 14, -Math.PI / 2 + Math.PI / 14));
+    L(g, 2, GOLD, star(24, 26, 23, 16, 14));
+    P(g, 0xffca28, [[10, 15], [7, 4], [18, 10]]);
+    P(g, 0xffca28, [[38, 15], [41, 4], [30, 10]]);
+    P(g, 0xffe082, [[10, 22], [12, 13], [24, 10], [36, 13], [38, 22], [36, 36], [24, 42], [12, 36]]);
+    P(g, 0xfff8e1, [[17, 30], [31, 30], [29, 38], [24, 41], [19, 38]]);
+    P(g, 0xd84315, [[22, 31], [26, 31], [24, 34]]);
+    P(g, GOLD, [[16, 12], [17, 3], [21, 9], [24, 1], [27, 9], [31, 3], [32, 12]]);
+    gem(g, 24, 8, 0xe53935, 2);
+    eyes(g, 24, 24, 12, 3);
+  },
+};
+
+// ── SHADOW ───────────────────────────────────────────────────────
+
+const VIOLET = 0xb39ddb;
+
+const SHADOW: Record<string, (g: G) => void> = {
+  gloam: (g) => {
+    P(g, 0x4527a0, [[24, 4], [33, 13], [36, 25], [32, 35], [35, 45], [26, 39], [22, 46], [18, 38], [11, 42], [14, 30], [12, 19], [17, 10]]);
+    P(g, 0x7e57c2, [[24, 12], [30, 19], [31, 28], [27, 34], [24, 40], [21, 34], [17, 28], [18, 19]]);
+    P(g, 0xb39ddb, [[20, 12], [24, 8], [25, 13]], 0.7);
+    glint(g, 24, 24, 9, 3, 0xffee58);
+  },
+  umbraith: (g) => {
+    const cloak: Pt[] = [[24, 1], [34, 11], [37, 25], [43, 42], [36, 38], [31, 46], [24, 39], [17, 46], [12, 38], [5, 42], [11, 25], [14, 11]];
+    P(g, 0x4a148c, leaf(11, 30, 10, 3, 2.7));
+    P(g, 0x4a148c, leaf(37, 30, 10, 3, 0.44));
+    P(g, 0x1a1030, cloak);
+    L(g, 2.5, VIOLET, cloak);
+    P(g, 0x05000d, [[24, 9], [30, 15], [29, 25], [24, 29], [19, 25], [18, 15]]);
+    glint(g, 24, 19, 8, 3, 0xce93d8);
+    gem(g, 24, 35, 0xce93d8, 2.5);
+  },
+  dusklet: (g) => {
+    P(g, 0x311b92, [[36, 38], [46, 29], [45, 40], [40, 45]]);
+    P(g, 0x311b92, [[10, 20], [7, 3], [18, 11], [30, 11], [41, 3], [38, 20], [41, 32], [35, 44], [13, 44], [7, 32]]);
+    P(g, 0x7e57c2, [[10, 14], [10, 7], [15, 12]]);
+    P(g, 0x7e57c2, [[38, 14], [38, 7], [33, 12]]);
+    P(g, 0x4527a0, [[17, 30], [31, 30], [30, 42], [18, 42]]);
+    rect(g, 0x1a1030, 12, 42, 9, 4, 2);
+    rect(g, 0x1a1030, 27, 42, 9, 4, 2);
+    gem(g, 13, 32, 0xfff59d, 1.8);
+    gem(g, 35, 26, 0xfff59d, 1.5);
+    gem(g, 31, 38, 0xfff59d, 1.4);
+    glint(g, 24, 22, 12, 3.5, 0xfff176);
+  },
+  nightfall: (g) => {
+    const body: Pt[] = [[10, 22], [6, 0], [18, 12], [30, 12], [42, 0], [38, 22], [41, 34], [34, 45], [14, 45], [7, 34]];
+    P(g, 0x1a1030, star(24, 28, 23, 16, 10));
+    P(g, 0x311b92, body);
+    L(g, 2.5, VIOLET, body);
+    P(g, 0x4527a0, [[17, 31], [31, 31], [30, 43], [18, 43]]);
+    P(g, 0xfff59d, [[24, 8], [27, 10], [28, 14], [27, 18], [24, 20], [26, 16], [26, 12]]);
+    gem(g, 10, 34, 0xfff59d, 2);
+    gem(g, 38, 30, 0xfff59d, 2);
+    gem(g, 33, 42, 0xfff59d, 1.6);
+    glint(g, 24, 25, 12, 3.5, 0xce93d8);
+  },
+  shade: (g) => {
+    const sil: Pt[] = [[24, 3], [31, 8], [32, 17], [39, 22], [40, 36], [33, 45], [15, 45], [8, 36], [9, 22], [16, 17], [17, 8]];
+    P(g, 0x120a22, sil);
+    P(g, 0x1e1238, [[24, 24], [33, 28], [34, 38], [24, 43], [14, 38], [15, 28]]);
+    L(g, 1.5, 0x5e35b1, sil);
+    glint(g, 24, 15, 8, 3, 0x80deea);
+  },
+  murkfang: (g) => {
+    P(g, 0x2a1a4a, star(24, 26, 23, 15, 11));
+    P(g, 0x2a1a4a, [[8, 16], [5, 3], [16, 10]]);
+    P(g, 0x2a1a4a, [[40, 16], [43, 3], [32, 10]]);
+    P(g, 0x3d2766, [[8, 20], [12, 10], [24, 8], [36, 10], [40, 20], [38, 36], [24, 44], [10, 36]]);
+    P(g, 0x120a22, [[13, 29], [35, 29], [31, 41], [17, 41]]);
+    P(g, 0xffffff, [[16, 29], [20, 29], [18, 38]]);
+    P(g, 0xffffff, [[28, 29], [32, 29], [30, 38]]);
+    P(g, 0xffffff, [[21, 41], [24, 41], [22.5, 34]]);
+    glint(g, 24, 19, 14, 3.5, 0xff1744);
+  },
+  eclipsor: (g) => {
+    P(g, 0xffe082, star(24, 16, 21, 13, 16));
+    P(g, 0x0b0614, ellipse(24, 16, 12, 12, 20));
+    P(g, 0x4a148c, [[2, 45], [2, 34], [9, 27], [18, 32], [14, 38], [10, 45]]);
+    P(g, 0x4a148c, [[46, 45], [46, 34], [39, 27], [30, 32], [34, 38], [38, 45]]);
+    const head: Pt[] = [[8, 37], [24, 24], [40, 37], [37, 47], [11, 47]];
+    P(g, 0x311b92, head);
+    L(g, 2.5, VIOLET, head);
+    P(g, 0xffffff, [[17, 44], [20, 44], [18.5, 49]]);
+    P(g, 0xffffff, [[28, 44], [31, 44], [29.5, 49]]);
+    glint(g, 24, 35, 12, 3.5, 0xffee58);
+  },
+};
+
+const ALL: Record<string, (g: G) => void> = { ...ROCK, ...NATURE, ...WOOD, ...WATER, ...LIGHT, ...SHADOW };
 
 /** Draws the pet onto `g`; returns false if no polygon art exists for this id. */
 export function drawPolygonPet(g: G, id: string, scale = 1): boolean {

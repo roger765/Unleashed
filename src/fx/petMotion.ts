@@ -4,20 +4,24 @@ import { PET_EVOLUTION } from '../data/evolutions';
 import { PetType } from '../types';
 
 /**
- * Per-type movement personality for Rock / Nature / Wood / Water pets.
+ * Per-type movement personality for Rock, Nature, Wood, Water, Light and Shadow pets.
  *   Rock   — heavy hop, thud on landing
  *   Nature — leafy sway, springy skip
  *   Wood   — lumbering waddle
  *   Water  — volume-preserving squash and stretch
+ *   Light  — weightless hover with a gentle pulse
+ *   Shadow — billowing drift
  * Evolved forms move slower, so they feel heavier than their base form.
  */
-export type PetMotionKind = 'hop' | 'sway' | 'waddle' | 'slosh';
+export type PetMotionKind = 'hop' | 'sway' | 'waddle' | 'slosh' | 'float' | 'drift';
 
 const KIND_BY_TYPE: Partial<Record<PetType, PetMotionKind>> = {
   [PetType.Rock]: 'hop',
   [PetType.Nature]: 'sway',
   [PetType.Wood]: 'waddle',
   [PetType.Water]: 'slosh',
+  [PetType.Light]: 'float',
+  [PetType.Shadow]: 'drift',
 };
 
 export function petMotionKind(templateId: string): PetMotionKind | null {
@@ -81,6 +85,33 @@ export function petPose(kind: PetMotionKind, tau: number, walking: boolean, face
         const k = Math.sin(tau * 4);
         sx = 1 + 0.15 * k; sy = 1 - 0.15 * k;
         dy = -Math.max(0, k) * 0.045; rot = 0.06 * Math.cos(tau * 4) * face;
+      }
+      break;
+    case 'float':
+      if (!walking) {
+        dy = -0.05 - 0.035 * Math.sin(tau * 2.2);
+        const k = Math.sin(tau * 4.4);
+        sy = 1 + 0.025 * k; sx = 1 - 0.02 * k;
+        rot = 0.03 * Math.sin(tau * 1.7);
+      } else {
+        const b = Math.sin(tau * 3.6);
+        dy = -0.07 - 0.05 * b;
+        rot = 0.07 * Math.cos(tau * 3.6) * face;
+        sy = 1 + 0.03 * b; sx = 1 - 0.02 * b;
+      }
+      break;
+    case 'drift':
+      if (!walking) {
+        const k = Math.sin(tau * 1.9);
+        sy = 1 + 0.06 * k;
+        sx = 1 + 0.05 * Math.sin(tau * 1.9 + 1.5);
+        rot = 0.05 * Math.sin(tau * 1.3);
+      } else {
+        const k = Math.sin(tau * 3.2);
+        sx = 1 + 0.12 * Math.sin(tau * 3.2 + 1);
+        sy = 1 + 0.08 * k;
+        rot = 0.1 * face + 0.04 * Math.sin(tau * 6);
+        dy = -0.02 - 0.02 * k;
       }
       break;
   }
